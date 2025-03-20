@@ -1,0 +1,48 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "TorchLBM"
+version = "0.1.0"
+description = "A short description of my project"
+authors = [{ name = "Your Name", email = "your.email@example.com" }]
+license = { file = "LICENSE" }
+readme = "README.md"
+dependencies = [
+    'torch',
+    'torch_geometric',
+    'numpy',
+    'pandas',
+    'vtk',
+    'matplotlib',
+    'pip',
+    'opencv-python',
+    'omegaconf',
+    'tqdm',
+    'lightning',
+    'furo',
+
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "black",
+    'flake8',
+    'coverage',
+    'sphinx',
+    'sphinx_copybutton',
+    'sphinxcontrib.katex',
+]  # Development dependencies
+cuda = ["torch @ https://download.pytorch.org/whl/cu121"]  # CUDA PyTorch (change URL as needed)
+
+[tool.setuptools]
+packages = ["mlbm", "torchlbm"]  # Adjust based on your package structure
+
+[tool.setuptools.package-dir]
+"" = "src"  # The source directory
+
+[tool.setuptools.dynamic]
+version = { attr = "my_project.__version__" }  # Read version from `__init__.py`
+

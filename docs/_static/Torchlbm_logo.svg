@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<svg viewBox="0 0 499.5112 64.8125" xmlns="http://www.w3.org/2000/svg">
+  <text style="fill: rgba(51, 51, 51, 0.8); font-family: Helvetica, sans-serif; font-size: 58px;" x="0.008" y="52.515" transform="matrix(1, 0, 0, 1, 0, 3.552713678800501e-15)">TorchLBM</text>
+  <g id="Page-1" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd" transform="matrix(0.15384601056575775, 0, 0, 0.15384601056575775, 385.66516113281256, 3.552713678800501e-15)">
+    <g id="2015_Logo_TUM_RGB" fill="#0065BD">
+      <path d="M405,9.13352234e-15 L370,2.70412665e-15 L370,320 L290,320 L290,1.5562918e-14 L255,9.13352234e-15 L0,1.35206332e-15 L0,70 L70,70 L70,390 L140,390 L140,70 L220,70 L220,390 L255,390 L405,390 L440,390 L440,70 L520,70 L520,390 L590,390 L590,70 L670,70 L670,390 L740,390 L740,35 L740,1.35206332e-15 L405,1.35206332e-15 Z" id="Rectangle-1"/>
+    </g>
+  </g>
+</svg>
