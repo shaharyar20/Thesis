@@ -1,0 +1,112 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  python-format:
+    name: Code Formatting Check
+    runs-on: ubuntu-latest
+    container:
+      image: josefwinter/torchlbm:latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Run Black Format Test
+        run: bash tools/black_format_test.sh
+
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    container:
+      image: josefwinter/torchlbm:latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Install Dependencies
+        run: pip install .
+
+      - name: Run Tests
+        run: |
+          make test
+          coverage run --source src -m pytest
+          coverage report -m
+          coverage xml -o coverage.xml
+
+      - name: Upload Coverage Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage.xml
+
+  testcases:
+    name: Run Test Cases
+    runs-on: ubuntu-latest
+    container:
+      image: josefwinter/torchlbm:latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Install Dependencies
+        run: pip install .
+
+      - name: Run Test Cases
+        run: |
+          cd tools
+          python case_vortex_street.py
+          python case_2d_taylor_green_vortex.py
+
+  docs:
+    name: Build Documentation
+    runs-on: ubuntu-latest
+    container:
+      image: josefwinter/torchlbm:latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Install Dependencies
+        run: pip install .
+
+      - name: Generate Documentation
+        run: |
+          rm -f docs/torchlbm.rst
+          rm -f docs/modules.rst
+          sphinx-apidoc -o docs/ src
+          make -C docs clean
+          make -C docs html
+
+      - name: Upload Documentation
+        uses: actions/upload-artifact@v4
+        with:
+          name: documentation
+          path: docs/_build/html
+
+  # deploy-pages:
+  #   name: Deploy Documentation to GitHub Pages
+  #   runs-on: ubuntu-latest
+  #   needs: docs
+  #   if: github.ref == 'refs/heads/main'
+  #   steps:
+  #     - name: Checkout Repository
+  #       uses: actions/checkout@v4
+
+  #     - name: Download Documentation
+  #       uses: actions/download-artifact@v4
+  #       with:
+  #         name: documentation
+  #         path: public
+
+  #     - name: Deploy to GitHub Pages
+  #       uses: actions/upload-pages-artifact@v2
+  #       with:
+  #         path: public
+
+  #     - name: Publish Pages
+  #       uses: actions/deploy-pages@v2

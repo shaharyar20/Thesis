@@ -38,10 +38,11 @@ dev = [
 cuda = ["torch @ https://download.pytorch.org/whl/cu121"]  # CUDA PyTorch (change URL as needed)
 
 [tool.setuptools]
-packages = ["mlbm", "torchlbm"]  # Adjust based on your package structure
+package-dir = { "" = "src" }  # Map the root namespace to the 'src' directory
 
-[tool.setuptools.package-dir]
-"" = "src"  # The source directory
+[tool.setuptools.packages.find]
+where = ["src"]  # Look for packages in the 'src' directory
+include = ["torchlbm*", "mlbm*"]  # Include both torchlbm and mlbm packages
 
 [tool.setuptools.dynamic]
 version = { attr = "my_project.__version__" }  # Read version from `__init__.py`

@@ -1,8 +1,23 @@
-FROM pytorch/pytorch:2.2.2-cuda12.1-cudnn8-devel
+# Use Ubuntu 22.04 as the base image
+FROM ubuntu:22.04
 
-RUN apt-get update && apt-get install -y libgl1 && apt-get install -y libegl1 && apt-get install -y libglib2.0-0 && apt-get install -y libxrender1 && apt-get install -y git
+# Set environment variables to avoid interactive prompts during installation
+ENV DEBIAN_FRONTEND=noninteractive
 
-RUN pip install nvidia-modulus && \
+# Update package list and install Python3, pip, and other dependencies
+RUN apt-get update && apt-get install -y \
+    python3 \
+    python3-pip \
+    libgl1 \
+    libegl1 \
+    libglib2.0-0 \
+    libxrender1 \
+    git \
+    wget && \
+    ln -s /usr/bin/python3 /usr/bin/python && \
+    pip3 install --upgrade pip
+
+RUN pip install torch && \
 pip install torch_geometric && \
 pip install lightning && \
 pip install hydra-core && \
