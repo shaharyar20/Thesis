@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from torchlbm.node_data import NodeData
 
 
-class CollisionModule(nn.Module):
+class SRTCollisionModule(nn.Module):
     """A TorchLBM module that performs the single relaxation time collision step of a Lattice-Boltzmann algorithm
 
     Args:
@@ -18,7 +18,7 @@ class CollisionModule(nn.Module):
         Args:
             relaxation_omega (float): The relaxation frequency.
         """
-        super(CollisionModule, self).__init__()
+        super(SRTCollisionModule, self).__init__()
 
     def forward(self, node_data: NodeData) -> torch.Tensor:
         """The forward pass of the collision modules. Gets as input the discretized velocity distribution of the start of the timestept,
@@ -31,6 +31,6 @@ class CollisionModule(nn.Module):
             torch.Tensor: The discretized velocity distribution after collision.
         """
         discrete_velocities_post_collision = (
-            1.0 - node_data.relaxation_omega.relaxation_omega
-        ) * node_data.distributions.old_population + node_data.relaxation_omega.relaxation_omega * node_data.distributions.new_population
+            1.0 - node_data.relaxation_omega
+        ) * node_data.distributions.old_population + node_data.relaxation_omega * node_data.distributions.new_population
         return discrete_velocities_post_collision

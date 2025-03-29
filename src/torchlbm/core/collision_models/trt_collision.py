@@ -40,7 +40,7 @@ class TRTCollisionModule(nn.Module):
         Returns:
             torch.Tensor: The discretized velocity distribution after collision.
         """
-        symmetric_omega = node_data.relaxation_omega.relaxation_omega
+        symmetric_omega = node_data.relaxation_omega
         antisymmetric_omega = 1.0 / (self.magic_parameter / (1.0 / symmetric_omega - 0.5) + 0.5)
 
         symmetric_discrete_velocities = node_data.distributions.old_population + node_data.distributions.old_population[self.my_opposite_lattice_indices_const]

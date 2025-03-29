@@ -26,15 +26,6 @@ class ShearLayerInitialCondition(TorchlbmInitialCondition):
     
     def get_bounce_back_mask(self, X, Y, Z):
         mask = torch.zeros_like(X).bool()
-        
-    #     n_circles = 50
-    #     torch.random.seed = 200
-    #     for i in range(n_circles):
-    #         x0 = torch.rand([1]).item()
-    #         y0 = torch.rand([1]).item()
-    #         r = 0.02 + 0.035 * torch.rand([1]).item()
-    #         mask = torch.where(torch.sqrt((X-x0)*(X-x0)+(Y-y0)*(Y-y0)) < r, 1, mask)
-
 
         return mask
 
@@ -44,7 +35,7 @@ def main():
     simulation_setup = TorchlbmSetup("LidDrivenCavity")
     simulation_setup["Domain"]["Dimension"].value = "2D"
     simulation_setup["Domain"]["NodeSize"].value = 1.0
-    simulation_setup["Domain"]["CellsPerNode"].value = 200
+    simulation_setup["Domain"]["CellsPerNode"].value = 150
     simulation_setup["Domain"]["NumHaloCells"].value = 1
     simulation_setup["Domain"]["NodeRatio"].value = [1, 1, 1]
     simulation_setup["Domain"]["BoundaryConditions"]["East"]["Type"].value = "Wall"
@@ -72,7 +63,7 @@ def main():
     simulation_setup["Output"]["Active"].value = True
     # simulation_setup["Output"]["ModulusArtifactsActive"].value = True
     # simulation_setup["Output"]["PrintTimingInformation"].value = False
-    simulation_setup["Output"]["OutputTimeInterval"].value = 0.01
+    simulation_setup["Output"]["OutputTimeInterval"].value = 1.0
     simulation_setup["Output"]["Velocity"]["Active"].value = True
     simulation_setup["Output"]["Velocity"]["ValueBounds"].value = [0.0, 1.0]
     simulation_setup["Output"]["Velocity"]["UseValueBounds"].value = False

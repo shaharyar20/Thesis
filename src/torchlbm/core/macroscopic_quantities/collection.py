@@ -4,10 +4,6 @@ import torch
 import torch.nn as nn
 from dataclasses import dataclass
 
-from torchlbm.core.macroscopic_quantities.density import DensityCalculationModule
-from torchlbm.core.macroscopic_quantities.velocities import (
-    MacroscopicVelocityCalculationModule,
-)
 from torchlbm.node_data import NodeData
 
 

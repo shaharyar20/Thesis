@@ -7,8 +7,8 @@ import sys
 
 from torchlbm.core.lattices.d2q9 import D2Q9
 from torchlbm.node_data import NodeData, Distributions, Moments
-from torchlbm.core.collision_models.linear_bgk import EquilibriumCalculationModule
-from torchlbm.core.collision_models.collision import CollisionModule
+from torchlbm.core.equilibrium.equilibrium import EquilibriumCalculationModule
+from torchlbm.core.collision_models.srt_collision import SRTCollisionModule
 from torchlbm.core.macroscopic_quantities.collection import MacroscopicQuantityCalculationModule
 import torchlbm.standalone_operations.file_operations as file_o
 from torchlbm.io_tools.statistics_output_writer import get_boxplot_figure
@@ -89,7 +89,7 @@ def generate_and_write_raw_data(path: Path, settings: RawDataSettings):
 
     equilibrium_module = EquilibriumCalculationModule(lattice.lattice_velocities(), lattice.lattice_weights())
 
-    collision_module = CollisionModule(settings.relaxation_omega)
+    collision_module = SRTCollisionModule(settings.relaxation_omega)
     discrete_velocities = torch.tensor(lattice.lattice_velocities())
 
     rho, u = compute_rho_u(settings.X, settings.Y, settings.Z, u_abs_max=settings.u_abs_max)

@@ -1,22 +1,22 @@
 from torchlbm.state import TorchlbmState
-from torchlbm.core.collision_models.collision import CollisionModule
+from torchlbm.core.collision_models.srt_collision import SRTCollisionModule
 from torchlbm.core.collision_models.trt_collision import TRTCollisionModule
 from torchlbm.core.collision_models.mrt_collision import MRTCollisionModule
 from torchlbm.core.collision_models.entropic_mrt_collision import EntropicMRTCollisionModule
 
 
-def get_collision_module(state: TorchlbmState) -> CollisionModule:
+def get_collision_module(state: TorchlbmState) -> SRTCollisionModule:
     """Factory function for the collision module object.
 
     Args:
         state (TorchlbmState): The state that contains all information about the simulation.
 
     Returns:
-        CollisionModule: The created object.
+        SRTCollisionModule: The created object.
     """
 
     if state.torchlbm_setup["Algorithm"]["Operators"]["Collision"]["Type"].value == "SRT":
-        return CollisionModule()
+        return SRTCollisionModule()
     elif state.torchlbm_setup["Algorithm"]["Operators"]["Collision"]["Type"].value == "TRT":
         return TRTCollisionModule(
             my_opposite_lattice_indices=state.lattice.opposite_lattice_indices(),
@@ -24,7 +24,7 @@ def get_collision_module(state: TorchlbmState) -> CollisionModule:
         )
     elif state.torchlbm_setup["Algorithm"]["Operators"]["Collision"]["Type"].value == "MRT":
         return MRTCollisionModule(
-            relaxation_omega=state.node_data.relaxation_omega.relaxation_omega,
+            relaxation_omega=state.torchlbm_setup["Physics"]["RelaxationOmega"].value,
             my_population_to_momentum_transform=state.lattice.population_to_momentum_transform(),
             my_momentum_to_population_transform=state.lattice.momentum_to_population_transform(),
         )

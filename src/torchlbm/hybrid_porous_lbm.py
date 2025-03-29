@@ -16,7 +16,7 @@ from torchlbm.exceptions import TorchlbmError
 
 from torchlbm.module_factory.collision_module_factory import get_collision_module
 from torchlbm.module_factory.streaming_module_factory import get_streaming_module
-from torchlbm.module_factory.macroscopic_quantitiy_calculation_module_factory import get_macroscopic_quantitiy_calculation_module
+from torchlbm.module_factory.macroscopic_quantity_calculation_module_factory import get_macroscopic_quantity_calculation_module
 from torchlbm.module_factory.boundary_condition_factory import (
     get_periodic_boundary_module,
     get_wall_boundary_module,
@@ -89,7 +89,7 @@ class HybridPorouslbmSimulation:
         self.advance_module = AdvanceModuleType(
             collision_module=get_collision_module(self.state),
             streaming_module=get_streaming_module(self.state),
-            macroscopic_module=get_macroscopic_quantitiy_calculation_module(self.state),
+            macroscopic_module=get_macroscopic_quantity_calculation_module(self.state),
             equilibrium_module=get_equilibrium_calculation_module(self.state),
             multiphase_module=get_multiphase_module(self.state),
             periodic_module=get_periodic_boundary_module(self.state),

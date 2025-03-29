@@ -1,7 +1,7 @@
 import torch
 from typing import List
 
-from torchlbm.core.collision_models.linear_bgk import EquilibriumCalculationModule
+from torchlbm.core.equilibrium.equilibrium import EquilibriumCalculationModule
 from torchlbm.simulation_setup.torchlbm_setup import TorchlbmSetup
 from torchlbm.exceptions import TorchlbmError
 from torchlbm.torchlbm_initial_condition import TorchlbmInitialCondition
@@ -10,7 +10,7 @@ from torchlbm.core.lattices.lattice_dictionaries import (
     TwoDimensionalLattices,
     ThreeDimensionalLattices,
 )
-from torchlbm.node_data import NodeData, Distributions, Moments, RelaxationOmega
+from torchlbm.node_data import NodeData, Distributions, Moments
 from torchlbm.unit_converter import UnitConverter
 from torchlbm.logger import Logger
 
@@ -214,37 +214,11 @@ class TorchlbmState:
                 torch.empty([self.lattice.n_discrete_velocities, density_shape[0], density_shape[1], density_shape[2]]),
             ),
             moments=Moments(initial_density, velocity_profile, torch.zeros_like(velocity_profile), torch.zeros_like(velocity_profile)),
-            relaxation_omega=RelaxationOmega(initial_relaxation_omega),
+            relaxation_omega=initial_relaxation_omega,
             bounce_back_mask=initial_bounce_back_mask.to(torch.int8) if initial_bounce_back_mask is not None else None,
         )
         self.node_data = equilibrium_module(self.node_data)
         self.node_data.distributions.old_population = self.node_data.distributions.new_population.clone()
-
-        internal_cells_list = self.torchlbm_setup["Domain"]["InternalCells"].value
-        num_halos = self.torchlbm_setup["Domain"]["NumHaloCells"].value
-        total_cell_list = [num_internal + 2 * num_halos for num_internal in internal_cells_list]
-        from torchlbm.core.streaming.streaming import StreamingModule
-
-        streaming_module = StreamingModule(
-            number_of_discrete_velocities=self.lattice.number_of_discrete_velocities(),
-            lattice_velocities=self.lattice.lattice_velocities(),
-            num_total_cells=total_cell_list,
-        )
-        from torchlbm.module_factory.boundary_condition_factory import get_periodic_boundary_module
-
-        periodic_module = get_periodic_boundary_module(self)
-
-        # for i in range(100):
-        #     self.node_data.moments.density = torch.sum(self.node_data.distributions.new_population, dim=0)
-        #     print(f"Density min: {torch.min(self.node_data.moments.density)}")
-        #     print(f"Density max: {torch.max(self.node_data.moments.density)}")
-        #     self.node_data = equilibrium_module(self.node_data)
-        #     print(f"NEQ min: {torch.min(self.node_data.distributions.old_population - self.node_data.distributions.new_population)}")
-        #     print(f"NEQ max: {torch.max(self.node_data.distributions.old_population - self.node_data.distributions.new_population)}")
-        #     self.node_data.distributions.old_population = self.node_data.distributions.new_population.clone()
-        #     self.node_data = streaming_module(self.node_data)
-        #     # self.node_data = periodic_module(self.node_data)
-        #     print("\n\n")
 
     def mps(self) -> None:
         """Moves all relevant data to the MPS device (tested for Apple MacBook with M chips.)"""

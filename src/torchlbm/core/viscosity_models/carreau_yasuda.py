@@ -60,7 +60,7 @@ class CarreauYasudaModule(nn.Module):
             self.kron_const,
         )
         blub = torch.norm(test, dim=[-2, -1])
-        shear_rate = node_data.relaxation_omega.relaxation_omega * blub / (self.cs**2 * node_data.moments.density)
+        shear_rate = node_data.relaxation_omega * blub / (self.cs**2 * node_data.moments.density)
         shear_rate = shear_rate / self.unit_converter.conversion_factor_time
         # print(shear_rate.shape)
 

@@ -5,13 +5,13 @@ import torch
 from torchlbm.state import TorchlbmState
 from torchlbm.module_factory.equilibrium_calculation_module_factory import get_equilibrium_calculation_module
 from torchlbm.module_factory.collision_module_factory import get_collision_module
-from torchlbm.module_factory.macroscopic_quantitiy_calculation_module_factory import get_macroscopic_quantitiy_calculation_module
+from torchlbm.module_factory.macroscopic_quantity_calculation_module_factory import get_macroscopic_quantity_calculation_module
 
 from torchlbm.core.advance import AdvanceModule
 
 from torchlbm.module_factory.collision_module_factory import get_collision_module
 from torchlbm.module_factory.streaming_module_factory import get_streaming_module
-from torchlbm.module_factory.macroscopic_quantitiy_calculation_module_factory import get_macroscopic_quantitiy_calculation_module
+from torchlbm.module_factory.macroscopic_quantity_calculation_module_factory import get_macroscopic_quantity_calculation_module
 from torchlbm.module_factory.boundary_condition_factory import (
     get_periodic_boundary_module,
     get_wall_boundary_module,
@@ -32,7 +32,7 @@ def check_advance_call(state: TorchlbmState):
         unit_converter=state.unit_converter,
         collision_module=get_collision_module(state),
         streaming_module=get_streaming_module(state),
-        macroscopic_module=get_macroscopic_quantitiy_calculation_module(state),
+        macroscopic_module=get_macroscopic_quantity_calculation_module(state),
         equilibrium_module=get_equilibrium_calculation_module(state, state.torchlbm_setup["Algorithm"]["Operators"]["EquilibriumCalculation"]["Type"].value),
         classical_equilibrium_module=get_equilibrium_calculation_module(state, "Classical"),
         multiphase_module=get_multiphase_module(state),

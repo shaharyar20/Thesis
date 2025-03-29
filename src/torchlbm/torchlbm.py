@@ -18,7 +18,7 @@ from torchlbm.node_data import NodeData
 
 from torchlbm.module_factory.collision_module_factory import get_collision_module
 from torchlbm.module_factory.streaming_module_factory import get_streaming_module
-from torchlbm.module_factory.macroscopic_quantitiy_calculation_module_factory import get_macroscopic_quantitiy_calculation_module
+from torchlbm.module_factory.macroscopic_quantity_calculation_module_factory import get_macroscopic_quantity_calculation_module
 from torchlbm.module_factory.boundary_condition_factory import (
     get_periodic_boundary_module,
     get_wall_boundary_module,
@@ -97,16 +97,12 @@ class LbmSimulation:
 
         AdvanceModuleType = ModulusAdvanceModel if use_modulus else AdvanceModule
 
-        use_mlp = self.state.torchlbm_setup["Algorithm"]["Operators"]["EquilibriumCalculation"]["Type"].value == "MLP"
         self.advance_module = AdvanceModuleType(
             unit_converter=self.state.unit_converter,
             collision_module=get_collision_module(self.state),
             streaming_module=get_streaming_module(self.state),
-            macroscopic_module=get_macroscopic_quantitiy_calculation_module(self.state),
-            equilibrium_module=get_equilibrium_calculation_module(
-                self.state, self.state.torchlbm_setup["Algorithm"]["Operators"]["EquilibriumCalculation"]["Type"].value
-            ),
-            classical_equilibrium_module=get_equilibrium_calculation_module(self.state, "Classical"),
+            macroscopic_module=get_macroscopic_quantity_calculation_module(self.state),
+            equilibrium_module=get_equilibrium_calculation_module(self.state),
             multiphase_module=get_multiphase_module(self.state),
             periodic_module=get_periodic_boundary_module(self.state),
             wall_module=get_wall_boundary_module(self.state),
@@ -179,7 +175,8 @@ class LbmSimulation:
         progress_bar = trange(total_number_iterations)
 
         # self.state.node_data = self.advance_module.initialize_simulation(self.state.node_data)
-        self.advance_module = torch.jit.script(self.advance_module)
+        # self.advance_module = torch.jit.script(self.advance_module)
+        self.advance_module = torch.compile(self.advance_module)
 
         if self.state.torchlbm_setup["Output"]["ProfilingActive"].value:
             device = "cuda"

@@ -76,62 +76,22 @@ class Distributions:
 
         self.old_population = old_population
         self.new_population = new_population
-        self.neq_population = old_population
 
     def mps(self) -> None:
         """Moves all objects to the mps device."""
         mps_device = torch.device("mps")
         self.old_population = self.old_population.to(mps_device)
         self.new_population = self.new_population.to(mps_device)
-        self.neq_population = self.neq_population.to(mps_device)
 
     def cuda(self) -> None:
         """Moves all objects to the cuda device."""
         self.old_population = self.old_population.cuda()
         self.new_population = self.new_population.cuda()
-        self.neq_population = self.neq_population.cuda()
 
     def cpu(self) -> None:
         """Moves all objects to the cpu device."""
         self.old_population = self.old_population.cpu()
         self.new_population = self.new_population.cpu()
-        self.neq_population = self.neq_population.cpu()
-
-    def set_neq_population(self) -> None:
-        self.neq_population = self.old_population - self.new_population
-
-
-class RelaxationOmega:
-    """A container for the storage intensive data for the Relaxation Omega field.
-    For vector-based quantities we have chosen a struct-of array based memory layout.
-    Thus, a three-dimensional vector (velocity for example) has the layout (3 x Nx x Ny x Nz),
-    where 3 denotes the dimension and Nx, Ny, and Nz refer to the number of cells in x-, y-, and z-direction."""
-
-    def __init__(
-        self,
-        relaxation_omega: torch.Tensor,
-    ) -> None:
-        """The constructor for the RelaxationOmega. It initializes the relaxation omega as a field variable.
-
-        Args:
-            old_relaxation_omega (torch.Tensor): The old relaxation omega field present at the beginning of a timestep.
-            new_relaxation_omega (torch.Tensor): The new relaxation omega field after a timestep.
-        """
-
-        self.relaxation_omega = relaxation_omega
-
-    def mps(self) -> None:
-        """Moves all objects to the mps device."""
-        mps_device = torch.device("mps")
-        self.relaxation_omega = self.relaxation_omega.to(mps_device)
-
-    def cuda(self) -> None:
-        """Moves all objects to the cuda device."""
-        self.relaxation_omega = self.relaxation_omega.cuda()
-
-    def cpu(self) -> None:
-        """Moves all objects to the cpu device."""
-        self.relaxation_omega = self.relaxation_omega.cpu()
 
 
 class NodeData:
@@ -144,8 +104,8 @@ class NodeData:
         self,
         distributions: Distributions,
         moments: Moments,
-        relaxation_omega: RelaxationOmega,
-        bounce_back_mask: torch.Tensor = None,
+        relaxation_omega: torch.Tensor,
+        bounce_back_mask: torch.Tensor,
     ) -> None:
         """The initializer that creates the member for the microscopic and macroscopic quantities.
 
@@ -162,22 +122,19 @@ class NodeData:
         """Moves all objects to the mps device."""
         self.distributions.mps()
         self.moments.mps()
-        self.relaxation_omega.mps()
-        if self.bounce_back_mask is not None:
-            self.bounce_back_mask = self.bounce_back_mask.to("mps")
+        self.relaxation_omega.to("mps")
+        self.bounce_back_mask = self.bounce_back_mask.to("mps")
 
     def cuda(self) -> None:
         """Moves all objects to the cuda device."""
         self.distributions.cuda()
         self.moments.cuda()
         self.relaxation_omega.cuda()
-        if self.bounce_back_mask is not None:
-            self.bounce_back_mask = self.bounce_back_mask.cuda()
+        self.bounce_back_mask = self.bounce_back_mask.cuda()
 
     def cpu(self) -> None:
         """Moves all objects to the cpu device."""
         self.distributions.cpu()
         self.moments.cpu()
         self.relaxation_omega.cpu()
-        if self.bounce_back_mask is not None:
-            self.bounce_back_mask = self.bounce_back_mask.cpu()
+        self.bounce_back_mask = self.bounce_back_mask.cpu()

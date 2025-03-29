@@ -2,8 +2,8 @@ from torchlbm.state import TorchlbmState
 from torchlbm.core.macroscopic_quantities.collection import MacroscopicQuantityCalculationModule
 
 
-def get_macroscopic_quantitiy_calculation_module(state: TorchlbmState) -> MacroscopicQuantityCalculationModule:
-    """Factory function to create a macroscopic quantitiy calculation module.
+def get_macroscopic_quantity_calculation_module(state: TorchlbmState) -> MacroscopicQuantityCalculationModule:
+    """Factory function to create a macroscopic quantity calculation module.
 
     Args:
         state (TorchlbmState): The state that contains all information about the simulation.

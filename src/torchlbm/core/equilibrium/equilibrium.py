@@ -57,10 +57,4 @@ class EquilibriumCalculationModule(nn.Module):
             * (1 + 3 * projected_discrete_velocities + 9 / 2 * projected_discrete_velocities**2 - 3 / 2 * macroscopic_velocity_magnitude.unsqueeze(0) ** 2)
         )
 
-        # print(f"Max neq: {torch.max(node_data.distributions.old_population - node_data.distributions.new_population)}")
-        # print(f"Mean neq: {torch.mean(torch.abs(node_data.distributions.old_population - node_data.distributions.new_population), dim=(1,2,3))}")
-        # print(f"Std neq: {torch.std(torch.abs(node_data.distributions.old_population - node_data.distributions.new_population), dim=(1,2,3))}")
-        # print(f"Mean pre equilibrium:\n{torch.mean(node_data.distributions.old_population, dim=[1,2,3])}")
-        # print(f"Mean post equilibrium:\n{torch.mean(node_data.distributions.new_population, dim=[1,2,3])}")
-
         return node_data

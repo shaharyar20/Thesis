@@ -19,7 +19,6 @@ class AdvanceModule(nn.Module):
         streaming_module,
         macroscopic_module,
         equilibrium_module,
-        classical_equilibrium_module,
         multiphase_module,
         periodic_module,
         wall_module,
@@ -54,7 +53,6 @@ class AdvanceModule(nn.Module):
         self.streaming_module = streaming_module
         self.macroscopic_module = macroscopic_module
         self.equilibrium_module = equilibrium_module
-        self.classical_equilibrium_module = classical_equilibrium_module
         self.multiphase_module = multiphase_module
         self.periodic_module = periodic_module
         self.wall_module = wall_module
@@ -83,7 +81,7 @@ class AdvanceModule(nn.Module):
             node_data = self.equilibrium_module(node_data)
 
             if self.is_carreau_yasuda_active:
-                node_data.relaxation_omega.relaxation_omega = self.carreau_yasuda_module(node_data)
+                node_data.relaxation_omega = self.carreau_yasuda_module(node_data)
 
             if node_data.bounce_back_mask is None:
                 node_data.distributions.old_population = self.collision_module(node_data)
@@ -131,7 +129,7 @@ class AdvanceModule(nn.Module):
         node_data = self.equilibrium_module(node_data)
 
         if self.is_carreau_yasuda_active:
-            node_data.relaxation_omega.relaxation_omega = self.carreau_yasuda_module(node_data)
+            node_data.relaxation_omega = self.carreau_yasuda_module(node_data)
 
         if node_data.bounce_back_mask is None:
             node_data.distributions.old_population = self.collision_module(node_data)
