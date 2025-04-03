@@ -1,17 +1,13 @@
 from torchlbm.setup_definitions.setup_types import SetupSet, SetupTag
-from torchlbm.setup_definitions.type_converters import StringConverter, PathConverter
+from torchlbm.setup_definitions.type_converters import StringConverter, PathConverter, ListConverter, FloatConverter
 
 
 def operator_implementations():
-    return ["Classical", "MLP"]
+    return ["Classical"]
 
 
 def collision_implementations():
     return ["SRT", "TRT", "MRT", "NN", "GNN", "EntropicMRT"]
-
-
-def equilibrium_implementations():
-    return ["Classical", "MLP"]
 
 
 class AlgorithmSetup(SetupSet):
@@ -28,19 +24,18 @@ class AlgorithmSetup(SetupSet):
             SetupSet(
                 "Operators",
                 [
-                    SetupTag("MacroscopicCalculation", "Classical", False, StringConverter(operator_implementations())),
-                    SetupSet(
-                        "EquilibriumCalculation",
-                        [
-                            SetupTag("Type", "Classical", False, StringConverter(equilibrium_implementations())),
-                            SetupTag("ModelPath", None, False, PathConverter()),
-                        ],
-                    ),
+                    SetupTag("Macroscopic", "Classical", False, StringConverter(operator_implementations())),
+                    SetupTag("Equilibrium", "Classical", False, StringConverter(operator_implementations())),
                     SetupSet(
                         "Collision",
                         [
                             SetupTag("Type", "SRT", False, StringConverter(collision_implementations())),
                             SetupTag("ModelPath", None, False, PathConverter()),
+                            SetupSet("MRT",
+                                [
+                                    SetupTag("FreeParameters", None, False, ListConverter(FloatConverter(), 0, None)),
+                                ],
+                            ),
                         ],
                     ),
                     SetupTag("Streaming", "Classical", False, StringConverter(operator_implementations())),

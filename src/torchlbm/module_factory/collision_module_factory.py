@@ -24,9 +24,12 @@ def get_collision_module(state: TorchlbmState) -> SRTCollisionModule:
         )
     elif state.torchlbm_setup["Algorithm"]["Operators"]["Collision"]["Type"].value == "MRT":
         return MRTCollisionModule(
-            relaxation_omega=state.torchlbm_setup["Physics"]["RelaxationOmega"].value,
+            free_parameters=state.torchlbm_setup["Algorithm"]["Operators"]["Collision"]["MRT"]["FreeParameters"].value,
             my_population_to_momentum_transform=state.lattice.population_to_momentum_transform(),
             my_momentum_to_population_transform=state.lattice.momentum_to_population_transform(),
+            number_of_discrete_velocities=state.lattice.number_of_discrete_velocities(),
+            free_parameter_indices=state.lattice.free_parameter_indices(),
+            viscosity_indices=state.lattice.viscosity_indices(),
         )
     elif state.torchlbm_setup["Algorithm"]["Operators"]["Collision"]["Type"].value == "EntropicMRT":
         return EntropicMRTCollisionModule(
