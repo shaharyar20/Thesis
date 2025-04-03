@@ -40,10 +40,7 @@ class CarreauYasudaModule(nn.Module):
         self.a = a
         self.exp = (n - 1.0) / a
         lattice_velocities = torch.tensor(lattice_velocities)
-        self.kron = torch.empty([number_of_discrete_velocities, 3, 3])
-        for i in range(number_of_discrete_velocities):
-            self.kron[i] = torch.kron(lattice_velocities[:, i].unsqueeze(1), lattice_velocities[:, i].unsqueeze(0))
-
+        self.kron = torch.einsum('aQ, bQ-> Qab', lattice_velocities, lattice_velocities)
         self.register_buffer("kron_const", self.kron)
 
     def forward(self, node_data: NodeData) -> torch.Tensor:
@@ -58,23 +55,15 @@ class CarreauYasudaModule(nn.Module):
         """
         neq = node_data.distributions.old_population - node_data.distributions.new_population
 
-        test = torch.einsum(
+        second_moment = torch.einsum(
             "QNML,Qde->NMLde",
             neq,
             self.kron_const,
         )
-        blub = torch.norm(test, dim=[-2, -1])
-        shear_rate = node_data.relaxation_omega * blub / (self.cs**2 * node_data.moments.density)
-        shear_rate = shear_rate / self.unit_converter.conversion_factor_time
-        # print(shear_rate.shape)
-
+        norm_second_moment = torch.norm(second_moment, dim=[-2, -1])
+        shear_rate = node_data.relaxation_omega * norm_second_moment / (self.cs**2 * node_data.moments.density) / self.unit_converter.conversion_factor_time
         viscosity = self.viscosity_inf + (self.viscosity_0 - self.viscosity_inf) * (1 + (self.lam * shear_rate) ** self.a) ** self.exp
 
-        relaxation_time = self.unit_converter.convert_kinematic_viscosity_to_relaxation_time_lattice_units(viscosity)
-        # print(f"Max relaxation time: {torch.max(relaxation_time)}")
-        # print(f"Min relaxation time: {torch.min(relaxation_time)}")
-        new_relaxation_omega = 1.0 / relaxation_time
-
-        # new_relaxation_omega = (2 * self.cs**2 * node_data.moments.density) / (2 * viscosity + self.cs**2 * node_data.moments.density)
+        new_relaxation_omega = 1.0 / self.unit_converter.convert_kinematic_viscosity_to_relaxation_time_lattice_units(viscosity)
 
         return new_relaxation_omega
