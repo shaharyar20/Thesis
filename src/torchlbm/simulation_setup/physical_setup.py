@@ -18,6 +18,9 @@ def equation_type():
 def volume_force_type():
     return ["ShanChen"]
 
+def non_newtonian_type():
+    return ["CarreauYasuda"]
+
 
 class PhysicalSetup(SetupSet):
     """The PhysicalSetup specifies the dimensionless numbers describing the underlying physical problem.
@@ -46,14 +49,19 @@ class PhysicalSetup(SetupSet):
                 ],
             ),
             SetupSet(
-                "CarreauYasuda",
+                "NonNewtonian",
                 [
                     SetupTag("Active", False, False, BoolConverter()),
-                    SetupTag("viscosity_inf", 1.0, False, FloatConverter()),
-                    SetupTag("viscosity_0", 1.0, False, FloatConverter()),
-                    SetupTag("lam", 1.0, False, FloatConverter()),
-                    SetupTag("n", 1.0, False, FloatConverter()),
-                    SetupTag("a", 1.0, False, FloatConverter()),
+                    SetupTag("Type", "CarreauYasuda", False, StringConverter(non_newtonian_type(), False)),
+                    SetupSet(
+                        "CarreauYasuda",
+                        [
+                            SetupTag("ViscosityInf", 1.0, False, FloatConverter()),
+                            SetupTag("lambda", 1.0, False, FloatConverter()),
+                            SetupTag("n", 1.0, False, FloatConverter()),
+                            SetupTag("a", 1.0, False, FloatConverter()),
+                        ],
+                    ),
                 ],
             ),
             SetupTag("Precision", "Double", True, StringConverter(precision(), False)),

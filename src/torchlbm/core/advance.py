@@ -23,8 +23,8 @@ class AdvanceModule(nn.Module):
         boundary_condition_modules,
         forcing_module,
         is_forcing_active,
-        carreau_yasuda_module,
-        is_carreau_yasuda_active,
+        non_newtonian_module,
+        is_non_newtonian_active,
     ) -> None:
         """The initializer that stores all relevant submodules as member. Also, important constants and usability objects
         are stored as members.
@@ -51,8 +51,8 @@ class AdvanceModule(nn.Module):
         self.boundary_condition_modules = boundary_condition_modules
         self.forcing_module = forcing_module
         self.is_forcing_active: bool = is_forcing_active
-        self.carreau_yasuda_module = carreau_yasuda_module
-        self.is_carreau_yasuda_active: bool = is_carreau_yasuda_active
+        self.non_newtonian_module = non_newtonian_module
+        self.is_non_newtonian_active: bool = is_non_newtonian_active
 
     def initialize_simulation(self, node_data: NodeData) -> NodeData:
 
@@ -68,8 +68,8 @@ class AdvanceModule(nn.Module):
 
             node_data = self.equilibrium_module(node_data)
 
-            if self.is_carreau_yasuda_active:
-                node_data.relaxation_omega = self.carreau_yasuda_module(node_data)
+            if self.is_non_newtonian_active:
+                node_data.relaxation_omega = self.non_newtonian_module(node_data)
 
             if node_data.bounce_back_mask is None:
                 node_data.distributions.old_population = self.collision_module(node_data)
@@ -111,8 +111,8 @@ class AdvanceModule(nn.Module):
 
         node_data = self.equilibrium_module(node_data)
 
-        if self.is_carreau_yasuda_active:
-            node_data.relaxation_omega = self.carreau_yasuda_module(node_data)
+        if self.is_non_newtonian_active:
+            node_data.relaxation_omega = self.non_newtonian_module(node_data)
 
         if node_data.bounce_back_mask is None:
             node_data.distributions.old_population = self.collision_module(node_data)

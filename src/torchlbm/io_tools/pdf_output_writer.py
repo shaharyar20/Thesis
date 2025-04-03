@@ -112,6 +112,34 @@ def get_single_node_pyplot_data(state: TorchlbmState):
             fig.colorbar(im, cax=cax, orientation="vertical", label=state.torchlbm_setup["Output"][name]["ColorbarLabel"].value, format=FuncFormatter(fmt))
             result[name.lower()] = fig
 
+    name = "KinematicViscosity"
+    if state.torchlbm_setup["Physics"]["NonNewtonian"]["Active"].value and state.torchlbm_setup["Output"][name]["Active"].value:
+        if "Picture" in state.torchlbm_setup["Output"][name]["Types"].value:
+            relaxation_omega = node.relaxation_omega[start[0] : end[0], start[1] : end[1], start[2] : end[2]].clone().detach()
+            relaxation_time = 1.0 / relaxation_omega
+            kinematic_viscosity = unit_converter.convert_relaxation_time_to_kinematic_viscosity_physical_units(relaxation_time)
+            kinematic_viscosity = torch.where(bounce_back_mask > 0, 0.0, kinematic_viscosity)
+            kinematic_viscosity = kinematic_viscosity.detach().numpy()
+
+            fig, ax = plt.subplots(1, 1, sharex=True, sharey=True, figsize=(num_cells_x / 100 + 2.5, num_cells_y / 100 + 0.5))
+            divider = make_axes_locatable(ax)
+            cax = divider.append_axes("right", size="5%", pad=0.05)
+            kinematic_viscosity_array = np.transpose(np.squeeze(kinematic_viscosity, axis=-1), axes=[1, 0])
+            im = ax.imshow(
+                kinematic_viscosity_array,
+                origin="lower",
+                cmap=plt.cm.viridis,  # plt.cm.Spectral,
+                interpolation="none",
+                extent=[0.0, num_cells_x * delta_x, 0.0, num_cells_y * delta_x],
+                vmin=state.torchlbm_setup["Output"][name]["ValueBounds"].value[0] if state.torchlbm_setup["Output"][name]["UseValueBounds"].value else None,
+                vmax=state.torchlbm_setup["Output"][name]["ValueBounds"].value[1] if state.torchlbm_setup["Output"][name]["UseValueBounds"].value else None,
+            )
+            ax.set_title(name)
+            ax.set_aspect("equal", "box")
+            fmt = lambda x, pos: "{:.2e}".format(x)
+            fig.colorbar(im, cax=cax, orientation="vertical", label=state.torchlbm_setup["Output"][name]["ColorbarLabel"].value, format=FuncFormatter(fmt))
+            result[name.lower()] = fig
+
     name = "BounceBackMask"
     if state.torchlbm_setup["Output"][name]["Active"].value:
         if "Picture" in state.torchlbm_setup["Output"][name]["Types"].value:

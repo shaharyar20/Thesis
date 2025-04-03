@@ -109,8 +109,8 @@ def get_single_node_output_data(state: TorchlbmState) -> vtkImageData:
     imageData.GetCellData().AddArray(forcing_velocity_array)
     imageData.GetCellData().AddArray(volume_force_field_array)
     imageData.GetCellData().AddArray(bounce_back_field_array)
-    if state.torchlbm_setup["Physics"]["CarreauYasuda"]["Active"].value:
-        relaxation_omega = node.relaxation_omega.relaxation_omega[start[0] : end[0], start[1] : end[1], start[2] : end[2]].clone().detach()
+    if state.torchlbm_setup["Physics"]["NonNewtonian"]["Active"].value:
+        relaxation_omega = node.relaxation_omega[start[0] : end[0], start[1] : end[1], start[2] : end[2]].clone().detach()
         relaxation_time = 1.0 / relaxation_omega
         kinematic_viscosity = unit_converter.convert_relaxation_time_to_kinematic_viscosity_physical_units(relaxation_time)
         kinematic_viscosity = torch.where(bounce_back_field_original > 0, 0.0, kinematic_viscosity)

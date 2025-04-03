@@ -75,4 +75,13 @@ def get_single_node_pytorch_data(state: TorchlbmState):
             name = "bounce_back_mask"
             result[name] = bounce_back_mask
 
+    if state.torchlbm_setup["Output"]["KinematicViscosity"]["Active"].value and state.torchlbm_setup["Physics"]["NonNewtonian"]["Active"].value:
+        if "PyTorch" in state.torchlbm_setup["Output"]["KinematicViscosity"]["Types"].value:
+            name = "kinematic_viscosity"
+            relaxation_omega = node.relaxation_omega[start[0] : end[0], start[1] : end[1], start[2] : end[2]].clone().detach()
+            relaxation_time = 1.0 / relaxation_omega
+            kinematic_viscosity = unit_converter.convert_relaxation_time_to_kinematic_viscosity_physical_units(relaxation_time)
+            kinematic_viscosity = torch.where(bounce_back_mask > 0, 0.0, kinematic_viscosity)
+            kinematic_viscosity = kinematic_viscosity.detach().numpy()
+            result[name] = kinematic_viscosity
     return result

@@ -17,7 +17,8 @@ class CarreauYasudaModule(nn.Module):
     def __init__(
         self,
         unit_converter: UnitConverter,
-        kron: torch.Tensor,
+        lattice_velocities,
+        number_of_discrete_velocities,
         viscosity_inf,
         viscosity_0,
         lam,
@@ -38,7 +39,10 @@ class CarreauYasudaModule(nn.Module):
         self.n = n
         self.a = a
         self.exp = (n - 1.0) / a
-        self.kron = kron
+        lattice_velocities = torch.tensor(lattice_velocities)
+        self.kron = torch.empty([number_of_discrete_velocities, 3, 3])
+        for i in range(number_of_discrete_velocities):
+            self.kron[i] = torch.kron(lattice_velocities[:, i].unsqueeze(1), lattice_velocities[:, i].unsqueeze(0))
 
         self.register_buffer("kron_const", self.kron)
 

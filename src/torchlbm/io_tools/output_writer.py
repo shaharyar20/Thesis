@@ -45,7 +45,7 @@ class OutputWriter:
         self.__logger = logger
         self.__dimension = state.torchlbm_setup["Domain"]["Dimension"].value
 
-        field_list = ["Density", "Velocity", "BounceBackMask"]
+        field_list = ["Density", "Velocity", "BounceBackMask", "KinematicViscosity"]
         for field in field_list:
             if state.torchlbm_setup["Output"][field]["Active"].value:
                 folder_to_be_created = self._visualization_folder.joinpath(field.lower())

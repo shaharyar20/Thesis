@@ -24,7 +24,7 @@ from torchlbm.module_factory.boundary_condition_factory import (
 from torchlbm.module_factory.multiphase_module_factory import get_multiphase_module
 from torchlbm.module_factory.forcing_module_factory import get_forcing_module
 from torchlbm.module_factory.equilibrium_calculation_module_factory import get_equilibrium_calculation_module
-from torchlbm.module_factory.carreau_yasuda_module_factory import get_carreau_yasuda_module
+from torchlbm.module_factory.non_newtonian_module_factory import get_carreau_yasuda_module
 
 
 def check_advance_call(state: TorchlbmState):

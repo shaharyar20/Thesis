@@ -132,7 +132,7 @@ class TorchlbmState:
         self.top_meshgrid = [meshgrid_for_node[i][:, :, -num_halo_cells:] for i in range(3)]
 
         self.torchlbm_setup["Physics"]["RelaxationOmega"].value = 1.0 / self.unit_converter.relaxation_parameter_lattice_units
-        if self.torchlbm_setup["Physics"]["CarreauYasuda"]["Active"].value:
+        if self.torchlbm_setup["Physics"]["NonNewtonian"]["Active"].value:
             initial_relaxation_omega = torch.ones_like(meshgrid_for_node[0]) * self.torchlbm_setup["Physics"]["RelaxationOmega"].value
         else:
             initial_relaxation_omega = torch.tensor(self.torchlbm_setup["Physics"]["RelaxationOmega"].value)
@@ -309,34 +309,35 @@ class TorchlbmState:
         self.logger.star_line_flush()
         self.logger.write("\n")
 
-        if self.torchlbm_setup["Physics"]["CarreauYasuda"]["Active"].value:
-            self.logger.write("Carreau Yasuda Viscosity parameters:")
-            self.logger.write("\n")
-            self.logger.write_table(
-                [
-                    ["Name", "Physical Value", "Lattice Value"],
-                    [],
+        if self.torchlbm_setup["Physics"]["NonNewtonian"]["Active"].value:
+            if self.torchlbm_setup["Physics"]["NonNewtonian"]["Type"].value == "CarreauYasuda":
+                self.logger.write("Carreau Yasuda Viscosity parameters:")
+                self.logger.write("\n")
+                self.logger.write_table(
                     [
-                        "viscosity_0",
-                        self.torchlbm_setup["Physics"]["CarreauYasuda"]["viscosity_0"].value,
-                        "{:10.4f}".format(
-                            self.unit_converter.convert_kinematic_viscosity_to_relaxation_time_lattice_units(
-                                self.torchlbm_setup["Physics"]["CarreauYasuda"]["viscosity_0"].value
-                            )
-                        ),
-                    ],
-                    [],
-                    [
-                        "viscosity_inf",
-                        self.torchlbm_setup["Physics"]["CarreauYasuda"]["viscosity_inf"].value,
-                        "{:10.4f}".format(
-                            self.unit_converter.convert_kinematic_viscosity_to_relaxation_time_lattice_units(
-                                self.torchlbm_setup["Physics"]["CarreauYasuda"]["viscosity_inf"].value
-                            )
-                        ),
-                    ],
-                ]
-            )
-            self.logger.write("\n")
-            self.logger.star_line_flush()
-            self.logger.write("\n")
+                        ["Name", "Physical Value", "Lattice Value"],
+                        [],
+                        [
+                            "viscosity_0",
+                            self.torchlbm_setup["Physics"]["KinematicViscosityPu"].value,
+                            "{:10.4f}".format(
+                                self.unit_converter.convert_kinematic_viscosity_to_relaxation_time_lattice_units(
+                                    self.torchlbm_setup["Physics"]["KinematicViscosityPu"].value
+                                )
+                            ),
+                        ],
+                        [],
+                        [
+                            "viscosity_inf",
+                            self.torchlbm_setup["Physics"]["NonNewtonian"]["CarreauYasuda"]["ViscosityInf"].value,
+                            "{:10.4f}".format(
+                                self.unit_converter.convert_kinematic_viscosity_to_relaxation_time_lattice_units(
+                                    self.torchlbm_setup["Physics"]["NonNewtonian"]["CarreauYasuda"]["ViscosityInf"].value
+                                )
+                            ),
+                        ],
+                    ]
+                )
+                self.logger.write("\n")
+                self.logger.star_line_flush()
+                self.logger.write("\n")

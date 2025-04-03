@@ -23,7 +23,7 @@ from torchlbm.module_factory.boundary_condition_factory import get_boundary_cond
 from torchlbm.module_factory.multiphase_module_factory import get_multiphase_module
 from torchlbm.module_factory.forcing_module_factory import get_forcing_module
 from torchlbm.module_factory.equilibrium_calculation_module_factory import get_equilibrium_calculation_module
-from torchlbm.module_factory.carreau_yasuda_module_factory import get_carreau_yasuda_module
+from torchlbm.module_factory.non_newtonian_module_factory import get_non_newtonian_module
 
 from functools import wraps
 import time
@@ -99,8 +99,8 @@ class LbmSimulation:
             boundary_condition_modules=get_boundary_condition_modules(self.state),
             forcing_module=get_forcing_module(self.state),
             is_forcing_active=self.state.torchlbm_setup["Physics"]["VolumeForces"]["Active"].value,
-            carreau_yasuda_module=get_carreau_yasuda_module(self.state),
-            is_carreau_yasuda_active=self.state.torchlbm_setup["Physics"]["CarreauYasuda"]["Active"].value,
+            non_newtonian_module=get_non_newtonian_module(self.state),
+            is_non_newtonian_active=self.state.torchlbm_setup["Physics"]["NonNewtonian"]["Active"].value,
         )
 
     def get_output_writer(self) -> OutputWriter:
