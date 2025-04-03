@@ -20,13 +20,7 @@ class AdvanceModule(nn.Module):
         macroscopic_module,
         equilibrium_module,
         multiphase_module,
-        periodic_module,
-        wall_module,
-        time_space_dependent_wall_module,
-        inlet_module,
-        outlet_module,
-        zero_gradient_module,
-        bounce_back_module,
+        boundary_condition_modules,
         forcing_module,
         is_forcing_active,
         carreau_yasuda_module,
@@ -54,13 +48,7 @@ class AdvanceModule(nn.Module):
         self.macroscopic_module = macroscopic_module
         self.equilibrium_module = equilibrium_module
         self.multiphase_module = multiphase_module
-        self.periodic_module = periodic_module
-        self.wall_module = wall_module
-        self.time_space_dependent_wall_module = time_space_dependent_wall_module
-        self.inlet_module = inlet_module
-        self.outlet_module = outlet_module
-        self.zero_gradient_module = zero_gradient_module
-        self.bounce_back_module = bounce_back_module
+        self.boundary_condition_modules = boundary_condition_modules
         self.forcing_module = forcing_module
         self.is_forcing_active: bool = is_forcing_active
         self.carreau_yasuda_module = carreau_yasuda_module
@@ -94,13 +82,8 @@ class AdvanceModule(nn.Module):
 
             node_data = self.streaming_module(node_data)
 
-            node_data = self.wall_module(node_data)
-            node_data = self.inlet_module(node_data)
-            node_data = self.outlet_module(node_data)
-            node_data = self.bounce_back_module(node_data)
-            node_data = self.zero_gradient_module(node_data)
-            node_data = self.periodic_module(node_data)
-            node_data = self.time_space_dependent_wall_module(node_data)
+            for module in self.boundary_condition_modules:
+                node_data = module(node_data)
 
             old_density = node_data.moments.density
             node_data.moments.density = torch.sum(node_data.distributions.old_population, dim=0)
@@ -142,13 +125,8 @@ class AdvanceModule(nn.Module):
 
         node_data = self.streaming_module(node_data)
 
-        node_data = self.wall_module(node_data)
-        node_data = self.inlet_module(node_data)
-        node_data = self.outlet_module(node_data)
-        node_data = self.bounce_back_module(node_data)
-        node_data = self.zero_gradient_module(node_data)
-        node_data = self.periodic_module(node_data)
-        node_data = self.time_space_dependent_wall_module(node_data)
+        for module in self.boundary_condition_modules:
+            node_data = module(node_data)
 
         node_data = self.macroscopic_module(node_data)
 

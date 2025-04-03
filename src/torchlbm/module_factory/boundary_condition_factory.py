@@ -12,6 +12,84 @@ from torchlbm.boundaries.time_space_dependent_wall_boundary_update import TimeSp
 
 from torchlbm.boundaries.boundary_values.time_space_dependent_wall_velocity import TimeSpaceDependentWallVelocity
 
+def get_boundary_condition_modules(state: TorchlbmState) -> List:
+
+    """Factory function to return a list of boundary condition update objects.
+
+    Args:
+        state (TorchlbmState): The state that contains all information about the simulation.
+
+    Returns:
+        List: The created list of boundary condition update objects.
+"""
+    boundary_condition_modules = []
+    if (
+        state.torchlbm_setup["Domain"]["BoundaryConditions"]["East"]["Type"].value == "Wall"
+        or state.torchlbm_setup["Domain"]["BoundaryConditions"]["West"]["Type"].value == "Wall"
+        or state.torchlbm_setup["Domain"]["BoundaryConditions"]["North"]["Type"].value == "Wall"
+        or state.torchlbm_setup["Domain"]["BoundaryConditions"]["South"]["Type"].value == "Wall"
+        or state.torchlbm_setup["Domain"]["BoundaryConditions"]["Top"]["Type"].value == "Wall"
+        or state.torchlbm_setup["Domain"]["BoundaryConditions"]["Bottom"]["Type"].value == "Wall"
+    ):
+        boundary_condition_modules.append(get_wall_boundary_module(state))
+
+    if (
+        state.torchlbm_setup["Domain"]["BoundaryConditions"]["East"]["Type"].value == "Inlet"
+        or state.torchlbm_setup["Domain"]["BoundaryConditions"]["West"]["Type"].value == "Inlet"
+        or state.torchlbm_setup["Domain"]["BoundaryConditions"]["North"]["Type"].value == "Inlet"
+        or state.torchlbm_setup["Domain"]["BoundaryConditions"]["South"]["Type"].value == "Inlet"
+        or state.torchlbm_setup["Domain"]["BoundaryConditions"]["Top"]["Type"].value == "Inlet"
+        or state.torchlbm_setup["Domain"]["BoundaryConditions"]["Bottom"]["Type"].value == "Inlet"
+    ):
+        boundary_condition_modules.append(get_inlet_boundary_module(state))
+
+    if (
+        state.torchlbm_setup["Domain"]["BoundaryConditions"]["East"]["Type"].value == "Outlet"
+        or state.torchlbm_setup["Domain"]["BoundaryConditions"]["West"]["Type"].value == "Outlet"
+        or state.torchlbm_setup["Domain"]["BoundaryConditions"]["North"]["Type"].value == "Outlet"
+        or state.torchlbm_setup["Domain"]["BoundaryConditions"]["South"]["Type"].value == "Outlet"
+        or state.torchlbm_setup["Domain"]["BoundaryConditions"]["Top"]["Type"].value == "Outlet"
+        or state.torchlbm_setup["Domain"]["BoundaryConditions"]["Bottom"]["Type"].value == "Outlet"
+    ):
+        boundary_condition_modules.append(get_outlet_boundary_module(state))
+
+    # Add bounce back boundary condition here later
+    if torch.sum(state.node_data.bounce_back_mask) > 0:
+        boundary_condition_modules.append(get_bounce_back_boundary_module(state))
+
+    if (
+        state.torchlbm_setup["Domain"]["BoundaryConditions"]["East"]["Type"].value == "ZeroGradient"
+        or state.torchlbm_setup["Domain"]["BoundaryConditions"]["West"]["Type"].value == "ZeroGradient"
+        or state.torchlbm_setup["Domain"]["BoundaryConditions"]["North"]["Type"].value == "ZeroGradient"
+        or state.torchlbm_setup["Domain"]["BoundaryConditions"]["South"]["Type"].value == "ZeroGradient"
+        or state.torchlbm_setup["Domain"]["BoundaryConditions"]["Top"]["Type"].value == "ZeroGradient"
+        or state.torchlbm_setup["Domain"]["BoundaryConditions"]["Bottom"]["Type"].value == "ZeroGradient"
+    ):
+        boundary_condition_modules.append(get_zero_gradient_boundary_module(state))
+
+    if (
+        state.torchlbm_setup["Domain"]["BoundaryConditions"]["East"]["Type"].value == "Periodic"
+        or state.torchlbm_setup["Domain"]["BoundaryConditions"]["West"]["Type"].value == "Periodic"
+        or state.torchlbm_setup["Domain"]["BoundaryConditions"]["North"]["Type"].value == "Periodic"
+        or state.torchlbm_setup["Domain"]["BoundaryConditions"]["South"]["Type"].value == "Periodic"
+        or state.torchlbm_setup["Domain"]["BoundaryConditions"]["Top"]["Type"].value == "Periodic"
+        or state.torchlbm_setup["Domain"]["BoundaryConditions"]["Bottom"]["Type"].value == "Periodic"
+    ):
+        boundary_condition_modules.append(get_periodic_boundary_module(state))
+
+    if (
+        state.torchlbm_setup["Domain"]["BoundaryConditions"]["East"]["Type"].value == "TimeSpaceDependentWall"
+        or state.torchlbm_setup["Domain"]["BoundaryConditions"]["West"]["Type"].value == "TimeSpaceDependentWall"
+        or state.torchlbm_setup["Domain"]["BoundaryConditions"]["North"]["Type"].value == "TimeSpaceDependentWall"
+        or state.torchlbm_setup["Domain"]["BoundaryConditions"]["South"]["Type"].value == "TimeSpaceDependentWall"
+        or state.torchlbm_setup["Domain"]["BoundaryConditions"]["Top"]["Type"].value == "TimeSpaceDependentWall"
+        or state.torchlbm_setup["Domain"]["BoundaryConditions"]["Bottom"]["Type"].value == "TimeSpaceDependentWall"
+    ):
+        boundary_condition_modules.append(get_time_space_dependent_wall_boundary_module(state))
+    
+    
+    return boundary_condition_modules
+
 
 def get_periodic_boundary_module(state: TorchlbmState) -> PeriodicBoundaryUpdate:
     """Factory function to return a periodic boundary update object.
