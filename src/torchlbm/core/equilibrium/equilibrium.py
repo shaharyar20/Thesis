@@ -40,7 +40,11 @@ class EquilibriumCalculationModule(nn.Module):
         Returns:
             NodeData: The modified node_data object where the new_population is overwritten with the equilibrium distribution.
         """
-        macroscopic_velocity = node_data.moments.velocity + node_data.moments.forcing_velocity
+        if node_data.moments.forcing_velocity is None:
+            macroscopic_velocity = node_data.moments.velocity
+        else:
+            macroscopic_velocity = node_data.moments.velocity + node_data.moments.forcing_velocity
+            
         projected_discrete_velocities = torch.einsum(
             "dQ,dNML->QNML",
             self.lattice_velocities_const,

@@ -3,6 +3,50 @@ import torch.nn as nn
 
 from torchlbm.node_data import NodeData
 
+import torch
+
+def get_tensor_memory(tensor):
+    """Returns the memory consumption of a tensor in bytes."""
+    if isinstance(tensor, torch.Tensor):
+        return tensor.numel() * tensor.element_size()
+    return 0  # Not a tensor
+
+def compute_memory(obj, seen=None):
+    """Recursively computes the total memory usage of all tensors in an object."""
+    if seen is None:
+        seen = set()
+    
+    total_memory = 0
+    if id(obj) in seen:  # Avoid infinite recursion for circular references
+        return 0
+    seen.add(id(obj))
+
+    if isinstance(obj, torch.Tensor):
+        total_memory += get_tensor_memory(obj)
+
+    elif isinstance(obj, dict):  # If obj is a dictionary, check its values
+        for v in obj.values():
+            total_memory += compute_memory(v, seen)
+
+    elif isinstance(obj, (list, tuple, set)):  # If obj is a collection, check its elements
+        for item in obj:
+            total_memory += compute_memory(item, seen)
+
+    elif hasattr(obj, "__dict__"):  # If obj is an object with attributes
+        for attr in vars(obj).values():
+            total_memory += compute_memory(attr, seen)
+
+    return total_memory
+
+def print_memory_usage(node_data):
+    total_bytes = compute_memory(node_data)
+    print(f"Total memory: {total_bytes / 1024:.2f} KB ({total_bytes / (1024 ** 2):.2f} MB)")
+
+# # Example usage
+# # Assuming node_data is your object containing tensors
+# print_memory_usage(node_data)
+
+
 
 class AdvanceModule(nn.Module):
     """The advance module that assembles one timestep based on several other PyTorch modules.
@@ -59,7 +103,8 @@ class AdvanceModule(nn.Module):
         for i in range(1000):
             print(f"Iteration {i}")
 
-            node_data.moments.volume_force_field = torch.zeros_like(node_data.moments.volume_force_field)
+            if node_data.moments.volume_force_field is not None:
+                node_data.moments.volume_force_field = torch.zeros_like(node_data.moments.volume_force_field)
 
             # node_data.moments.forcing_velocity = self.multiphase_module(node_data)
 
@@ -102,7 +147,9 @@ class AdvanceModule(nn.Module):
         Returns:
             Tuple[NodeData, List[IBMmeshData]]: Return the updated node data and immersed-boundary objects.
         """
-        node_data.moments.volume_force_field = torch.zeros_like(node_data.moments.volume_force_field)
+
+        if node_data.moments.volume_force_field is not None:
+            node_data.moments.volume_force_field = torch.zeros_like(node_data.moments.volume_force_field)
 
         # node_data.moments.forcing_velocity = self.multiphase_module(node_data)
 
@@ -129,5 +176,7 @@ class AdvanceModule(nn.Module):
             node_data = module(node_data)
 
         node_data = self.macroscopic_module(node_data)
+
+        # print_memory_usage(node_data)
 
         return node_data

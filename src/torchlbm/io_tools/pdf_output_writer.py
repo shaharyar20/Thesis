@@ -53,13 +53,13 @@ def get_single_node_pyplot_data(state: TorchlbmState):
     velocity = torch.where(bounce_back_mask.unsqueeze(0) > 0, 0.0, velocity)
     velocity = velocity.detach().numpy()
 
-    forcing_velocity = node.moments.forcing_velocity[:, start[0] : end[0], start[1] : end[1], start[2] : end[2]].clone().detach()
-    forcing_velocity = unit_converter.convert_velocity_to_physical_units(forcing_velocity)
-    forcing_velocity = forcing_velocity.detach().numpy()
+    # forcing_velocity = node.moments.forcing_velocity[:, start[0] : end[0], start[1] : end[1], start[2] : end[2]].clone().detach()
+    # forcing_velocity = unit_converter.convert_velocity_to_physical_units(forcing_velocity)
+    # forcing_velocity = forcing_velocity.detach().numpy()
 
-    volume_force_field = node.moments.volume_force_field[:, start[0] : end[0], start[1] : end[1], start[2] : end[2]].clone().detach()
-    volume_force_field = unit_converter.convert_acceleration_to_physical_units(volume_force_field)
-    volume_force_field = volume_force_field.detach().numpy()
+    # volume_force_field = node.moments.volume_force_field[:, start[0] : end[0], start[1] : end[1], start[2] : end[2]].clone().detach()
+    # volume_force_field = unit_converter.convert_acceleration_to_physical_units(volume_force_field)
+    # volume_force_field = volume_force_field.detach().numpy()
 
     num_cells_x = density.shape[0]
     num_cells_y = density.shape[1]

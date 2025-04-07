@@ -51,13 +51,14 @@ def get_single_node_output_data(state: TorchlbmState) -> vtkImageData:
     velocity = unit_converter.convert_velocity_to_physical_units(velocity)
     velocity = torch.where(bounce_back_field.unsqueeze(0) > 0, 0.0, velocity)
 
-    forcing_velocity = node.moments.forcing_velocity[:, start[0] : end[0], start[1] : end[1], start[2] : end[2]].clone().detach()
-    forcing_velocity = unit_converter.convert_velocity_to_physical_units(forcing_velocity)
-    forcing_velocity = torch.where(bounce_back_field.unsqueeze(0) > 0, 0.0, forcing_velocity)
+    if state.torchlbm_setup["Physics"]["VolumeForces"]["Active"].value:
+        forcing_velocity = node.moments.forcing_velocity[:, start[0] : end[0], start[1] : end[1], start[2] : end[2]].clone().detach()
+        forcing_velocity = unit_converter.convert_velocity_to_physical_units(forcing_velocity)
+        forcing_velocity = torch.where(bounce_back_field.unsqueeze(0) > 0, 0.0, forcing_velocity)
 
-    volume_force_field = node.moments.volume_force_field[:, start[0] : end[0], start[1] : end[1], start[2] : end[2]].clone().detach()
-    volume_force_field = unit_converter.convert_acceleration_to_physical_units(volume_force_field)
-    volume_force_field = torch.where(bounce_back_field.unsqueeze(0) > 0, 0.0, volume_force_field)
+        volume_force_field = node.moments.volume_force_field[:, start[0] : end[0], start[1] : end[1], start[2] : end[2]].clone().detach()
+        volume_force_field = unit_converter.convert_acceleration_to_physical_units(volume_force_field)
+        volume_force_field = torch.where(bounce_back_field.unsqueeze(0) > 0, 0.0, volume_force_field)
 
     bounce_back_field = torch.moveaxis(bounce_back_field, 2, 0)
     bounce_back_field = torch.moveaxis(bounce_back_field, 1, 2)
@@ -71,25 +72,11 @@ def get_single_node_output_data(state: TorchlbmState) -> vtkImageData:
     velocity = torch.moveaxis(velocity, 2, 3)
     velocity = torch.transpose(velocity.flatten(start_dim=1), 0, 1).detach().numpy()
 
-    forcing_velocity = torch.moveaxis(forcing_velocity, 3, 1)
-    forcing_velocity = torch.moveaxis(forcing_velocity, 2, 3)
-    forcing_velocity = torch.transpose(forcing_velocity.flatten(start_dim=1), 0, 1).detach().numpy()
-
-    volume_force_field = torch.moveaxis(volume_force_field, 3, 1)
-    volume_force_field = torch.moveaxis(volume_force_field, 2, 3)
-    volume_force_field = torch.transpose(volume_force_field.flatten(start_dim=1), 0, 1).detach().numpy()
-
     density_array = numpy_support.numpy_to_vtk(density)
     density_array.SetName("density")
 
     velocity_array = numpy_support.numpy_to_vtk(velocity)
     velocity_array.SetName("velocity")
-
-    forcing_velocity_array = numpy_support.numpy_to_vtk(forcing_velocity)
-    forcing_velocity_array.SetName("forcing_velocity")
-
-    volume_force_field_array = numpy_support.numpy_to_vtk(volume_force_field)
-    volume_force_field_array.SetName("volume_force_field")
 
     bounce_back_field_array = numpy_support.numpy_to_vtk(bounce_back_field)
     bounce_back_field_array.SetName("bounce_back_field")
@@ -106,10 +93,10 @@ def get_single_node_output_data(state: TorchlbmState) -> vtkImageData:
     imageData.SetOrigin(0.0, 0.0, 0.0)
     imageData.GetCellData().AddArray(density_array)
     imageData.GetCellData().AddArray(velocity_array)
-    imageData.GetCellData().AddArray(forcing_velocity_array)
-    imageData.GetCellData().AddArray(volume_force_field_array)
     imageData.GetCellData().AddArray(bounce_back_field_array)
+
     if state.torchlbm_setup["Physics"]["NonNewtonian"]["Active"].value:
+
         relaxation_omega = node.relaxation_omega[start[0] : end[0], start[1] : end[1], start[2] : end[2]].clone().detach()
         relaxation_time = 1.0 / relaxation_omega
         kinematic_viscosity = unit_converter.convert_relaxation_time_to_kinematic_viscosity_physical_units(relaxation_time)
@@ -120,5 +107,26 @@ def get_single_node_output_data(state: TorchlbmState) -> vtkImageData:
         kinematic_viscosity_array = numpy_support.numpy_to_vtk(kinematic_viscosity)
         kinematic_viscosity_array.SetName("kinematic_viscosity")
         imageData.GetCellData().AddArray(kinematic_viscosity_array)
+
+    if state.torchlbm_setup["Physics"]["VolumeForces"]["Active"].value:
+
+        forcing_velocity = torch.moveaxis(forcing_velocity, 3, 1)
+        forcing_velocity = torch.moveaxis(forcing_velocity, 2, 3)
+        forcing_velocity = torch.transpose(forcing_velocity.flatten(start_dim=1), 0, 1).detach().numpy()
+
+        volume_force_field = torch.moveaxis(volume_force_field, 3, 1)
+        volume_force_field = torch.moveaxis(volume_force_field, 2, 3)
+        volume_force_field = torch.transpose(volume_force_field.flatten(start_dim=1), 0, 1).detach().numpy()
+
+        forcing_velocity_array = numpy_support.numpy_to_vtk(forcing_velocity)
+        forcing_velocity_array.SetName("forcing_velocity")
+
+        volume_force_field_array = numpy_support.numpy_to_vtk(volume_force_field)
+        volume_force_field_array.SetName("volume_force_field")
+
+        imageData.GetCellData().AddArray(forcing_velocity_array)
+        imageData.GetCellData().AddArray(volume_force_field_array)
+
+
 
     return imageData

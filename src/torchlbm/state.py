@@ -208,12 +208,15 @@ class TorchlbmState:
 
         density_shape = initial_density.shape
 
+        iniitial_forcing_velocity = torch.zeros_like(velocity_profile) if self.torchlbm_setup["Physics"]["VolumeForces"]["Active"].value else None
+        initial_volume_force_field = torch.zeros_like(velocity_profile) if self.torchlbm_setup["Physics"]["VolumeForces"]["Active"].value else None
+
         self.node_data: NodeData = NodeData(
             distributions=Distributions(
                 torch.empty([self.lattice.n_discrete_velocities, density_shape[0], density_shape[1], density_shape[2]]),
                 torch.empty([self.lattice.n_discrete_velocities, density_shape[0], density_shape[1], density_shape[2]]),
             ),
-            moments=Moments(initial_density, velocity_profile, torch.zeros_like(velocity_profile), torch.zeros_like(velocity_profile)),
+            moments=Moments(initial_density, velocity_profile, iniitial_forcing_velocity, initial_volume_force_field),
             relaxation_omega=initial_relaxation_omega,
             bounce_back_mask=initial_bounce_back_mask.to(torch.int8) if initial_bounce_back_mask is not None else None,
         )
