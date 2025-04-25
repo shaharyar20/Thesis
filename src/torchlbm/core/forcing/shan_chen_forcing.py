@@ -1,6 +1,7 @@
 import torch.nn as nn
 import torch
 from dataclasses import dataclass
+from typing import List
 
 from torchlbm.node_data import NodeData
 
@@ -33,7 +34,7 @@ class ShanChenForcingModule(nn.Module):
         self.force_vector = force_vector
         self.register_buffer("force_vector_const", self.force_vector)
 
-    def forward(self, node_data: NodeData) -> torch.Tensor:
+    def forward(self, volume_force_field: torch.Tensor, density: torch.Tensor) -> List[torch.Tensor]:
         """The forward passt calculation the equilibrium macroscopic velocities for the volume force.
 
         Args:
@@ -42,6 +43,6 @@ class ShanChenForcingModule(nn.Module):
         Returns:
             torch.Tensor: The equilibrium velocitiy that was calculated based on the force.
         """
-        node_data.moments.volume_force_field = node_data.moments.volume_force_field + self.force_vector_const
-        equilibrium_macroscopic_velocities = self.tau * (node_data.moments.volume_force_field) / node_data.moments.density
-        return equilibrium_macroscopic_velocities
+        volume_force_field = volume_force_field + self.force_vector_const
+        equilibrium_macroscopic_velocities = self.tau * volume_force_field / density
+        return equilibrium_macroscopic_velocities, volume_force_field

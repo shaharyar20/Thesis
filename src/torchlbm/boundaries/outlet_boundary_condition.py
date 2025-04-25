@@ -411,7 +411,7 @@ class OutletBoundaryUpdate(nn.Module):
         return population
     # fmt: on
 
-    def forward(self, node_data: NodeData) -> NodeData:
+    def forward(self, old_population: torch.Tensor, density: torch.Tensor, velocity: torch.Tensor, bounce_back_mask: torch.Tensor) -> torch.Tensor:
         """Performs the wall boundary update as the forwards pass of the PyTorch module.
 
         Args:
@@ -421,31 +421,32 @@ class OutletBoundaryUpdate(nn.Module):
             NodeData: The node data that contains the storage intensive fields for macroscopic and microscopic quantities which are already
                       updated according to the wall boundary condition.
         """
+        population = old_population.clone()
         if self.is_east_outlet:
-            node_data.distributions.old_population = self.update_east_outlet(
-                node_data.distributions.old_population, node_data.moments.velocity, node_data.moments.density
+            population = self.update_east_outlet(
+                population, velocity, density
             )
         if self.is_west_outlet:
-            node_data.distributions.old_population = self.update_west_outlet(
-                node_data.distributions.old_population, node_data.moments.velocity, node_data.moments.density
+            population = self.update_west_outlet(
+                population, velocity, density
             )
 
         if self.is_north_outlet:
-            node_data.distributions.old_population = self.update_north_outlet(
-                node_data.distributions.old_population, node_data.moments.velocity, node_data.moments.density
+            population = self.update_north_outlet(
+                population, velocity, density
             )
         if self.is_south_outlet:
-            node_data.distributions.old_population = self.update_south_outlet(
-                node_data.distributions.old_population, node_data.moments.velocity, node_data.moments.density
+            population = self.update_south_outlet(
+                population, velocity, density
             )
 
         if self.is_top_outlet:
-            node_data.distributions.old_population = self.update_top_outlet(
-                node_data.distributions.old_population, node_data.moments.velocity, node_data.moments.density
+            population = self.update_top_outlet(
+                population, velocity, density
             )
         if self.is_bottom_outlet:
-            node_data.distributions.old_population = self.update_bottom_outlet(
-                node_data.distributions.old_population, node_data.moments.velocity, node_data.moments.density
+            population = self.update_bottom_outlet(
+                population, velocity, density
             )
 
-        return node_data
+        return population

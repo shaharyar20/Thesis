@@ -154,12 +154,12 @@ class AdvanceModule(nn.Module):
         # node_data.moments.forcing_velocity = self.multiphase_module(node_data)
 
         if self.is_forcing_active:
-            node_data.moments.forcing_velocity = self.forcing_module(node_data)
+            node_data.moments.forcing_velocity, node_data.moments.volume_force_field = self.forcing_module(node_data.moments.volume_force_field, node_data.moments.density)
 
         node_data.distributions.new_population = self.equilibrium_module(node_data.moments.density, node_data.moments.velocity, node_data.moments.forcing_velocity)
 
         if self.is_non_newtonian_active:
-            node_data.relaxation_omega = self.non_newtonian_module(node_data)
+            node_data.relaxation_omega = self.non_newtonian_module(node_data.distributions.old_population, node_data.distributions.new_population, node_data.relaxation_omega, node_data.moments.density)
 
         if node_data.bounce_back_mask is None:
             node_data.distributions.old_population = self.collision_module(node_data.distributions.old_population, node_data.distributions.new_population, node_data.relaxation_omega)
@@ -170,12 +170,12 @@ class AdvanceModule(nn.Module):
                 self.collision_module(node_data.distributions.old_population, node_data.distributions.new_population, node_data.relaxation_omega),
             )
 
-        node_data = self.streaming_module(node_data)
+        node_data.distributions.old_population = self.streaming_module(node_data.distributions.old_population)
 
         for module in self.boundary_condition_modules:
-            node_data = module(node_data)
+            node_data.distributions.old_population = module(node_data.distributions.old_population, node_data.moments.density, node_data.moments.velocity, node_data.bounce_back_mask)
 
-        node_data = self.macroscopic_module(node_data)
+        node_data.moments.density, node_data.moments.velocity = self.macroscopic_module(node_data.distributions.old_population)
 
         # print_memory_usage(node_data)
 

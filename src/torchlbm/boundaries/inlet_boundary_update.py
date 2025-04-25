@@ -394,7 +394,7 @@ class InletBoundaryUpdate(nn.Module):
         return population
     # fmt: on
 
-    def forward(self, node_data: NodeData) -> NodeData:
+    def forward(self, old_population: torch.Tensor, density: torch.Tensor, velocity: torch.Tensor, bounce_back_mask: torch.Tensor) -> torch.Tensor:
         """Performs the wall boundary update as the forwards pass of the PyTorch module.
 
         Args:
@@ -404,19 +404,20 @@ class InletBoundaryUpdate(nn.Module):
             NodeData: The node data that contains the storage intensive fields for macroscopic and microscopic quantities which are already
                       updated according to the wall boundary condition.
         """
+        population = old_population.clone()
         if self.is_east_inlet:
-            node_data.distributions.old_population = self.update_east_inlet(node_data.distributions.old_population, node_data.moments.density)
+            population = self.update_east_inlet(population, density)
         if self.is_west_inlet:
-            node_data.distributions.old_population = self.update_west_inlet(node_data.distributions.old_population, node_data.moments.density)
+            population = self.update_west_inlet(population, density)
 
         if self.is_north_inlet:
-            node_data.distributions.old_population = self.update_north_inlet(node_data.distributions.old_population, node_data.moments.density)
+            population = self.update_north_inlet(population, density)
         if self.is_south_inlet:
-            node_data.distributions.old_population = self.update_south_inlet(node_data.distributions.old_population, node_data.moments.density)
+            population = self.update_south_inlet(population, density)
 
         if self.is_top_inlet:
-            node_data.distributions.old_population = self.update_top_inlet(node_data.distributions.old_population, node_data.moments.density)
+            population = self.update_top_inlet(population, density)
         if self.is_bottom_inlet:
-            node_data.distributions.old_population = self.update_bottom_inlet(node_data.distributions.old_population, node_data.moments.density)
+            population = self.update_bottom_inlet(population, density)
 
-        return node_data
+        return population

@@ -29,7 +29,7 @@ class StreamingModule(nn.Module):
         self.lattice_velocities = self.lattice_velocities.tolist()
         self.num_total_cells = num_total_cells
 
-    def forward(self, node_data: NodeData) -> NodeData:
+    def forward(self, old_population: torch.Tensor) -> torch.Tensor:
         """The forward pass which performs the streaming operation.
 
         Args:
@@ -52,17 +52,18 @@ class StreamingModule(nn.Module):
         #     )
         # node_data.distributions.old_population = discrete_velocities
         # return node_data
+        population_post_streaming = old_population.clone()
         for i in range(self.number_of_discrete_velocities):
-            node_data.distributions.new_population[
+            population_post_streaming[
                 i,
                 0 + int(self.lattice_velocities[0][i] > 0) : self.num_total_cells[0] - int(self.lattice_velocities[0][i] < 0),
                 0 + int(self.lattice_velocities[1][i] > 0) : self.num_total_cells[1] - int(self.lattice_velocities[1][i] < 0),
                 0 + int(self.lattice_velocities[2][i] > 0) : self.num_total_cells[2] - int(self.lattice_velocities[2][i] < 0),
-            ] = node_data.distributions.old_population[
+            ] = old_population[
                 i,
                 0 + int(self.lattice_velocities[0][i] < 0) : self.num_total_cells[0] - int(self.lattice_velocities[0][i] > 0),
                 0 + int(self.lattice_velocities[1][i] < 0) : self.num_total_cells[1] - int(self.lattice_velocities[1][i] > 0),
                 0 + int(self.lattice_velocities[2][i] < 0) : self.num_total_cells[2] - int(self.lattice_velocities[2][i] > 0),
             ]
-        node_data.distributions.old_population = node_data.distributions.new_population
-        return node_data
+        # node_data.distributions.old_population = population_post_streaming
+        return population_post_streaming

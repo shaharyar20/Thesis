@@ -41,7 +41,7 @@ class PeriodicBoundaryUpdate(nn.Module):
         self.is_j_periodic: bool = is_j_periodic
         self.is_k_periodic: bool = is_k_periodic
 
-    def forward(self, node_data: NodeData) -> NodeData:
+    def forward(self, old_population: torch.Tensor, density: torch.Tensor, velocity: torch.Tensor, bounce_back_mask: torch.Tensor) -> torch.Tensor:
         """Performs the periodic boundary update as the forward pass of the PyTorch module.
 
         Args:
@@ -55,7 +55,7 @@ class PeriodicBoundaryUpdate(nn.Module):
             NodeData: The node data with applied periodic boundary conditions.
         """
 
-        x = node_data.distributions.old_population
+        x = old_population.clone()
         halo = self.num_halo_cells
 
         if self.dimension == 3:
@@ -125,6 +125,6 @@ class PeriodicBoundaryUpdate(nn.Module):
                 x[:, :halo, :, :] = x[:, -2 * halo : -halo, :, :]  # Left halo from right interior
                 x[:, -halo:, :, :] = x[:, halo : 2 * halo, :, :]  # Right halo from left interior
 
-        node_data.distributions.old_population = x
+        # node_data.distributions.old_population = x
 
-        return node_data
+        return x

@@ -393,7 +393,7 @@ class WallBoundaryUpdate(nn.Module):
         return population
     # fmt: on
 
-    def forward(self, node_data: NodeData) -> NodeData:
+    def forward(self, old_population: torch.Tensor, density: torch.Tensor, velocity: torch.Tensor, bounce_back_mask: torch.Tensor) -> torch.Tensor:
         """Performs the wall boundary update as the forwards pass of the PyTorch module.
 
         Args:
@@ -403,19 +403,20 @@ class WallBoundaryUpdate(nn.Module):
             NodeData: The node data that contains the storage intensive fields for macroscopic and microscopic quantities which are already
                       updated according to the wall boundary condition.
         """
+        population = old_population.clone()
         if self.is_east_wall:
-            node_data.distributions.old_population = self.update_east_wall(node_data.distributions.old_population, node_data.moments.density)
+            population = self.update_east_wall(population, density)
         if self.is_west_wall:
-            node_data.distributions.old_population = self.update_west_wall(node_data.distributions.old_population, node_data.moments.density)
+            population = self.update_west_wall(population, density)
 
         if self.is_north_wall:
-            node_data.distributions.old_population = self.update_north_wall(node_data.distributions.old_population, node_data.moments.density)
+            population = self.update_north_wall(population, density)
         if self.is_south_wall:
-            node_data.distributions.old_population = self.update_south_wall(node_data.distributions.old_population, node_data.moments.density)
+            population = self.update_south_wall(population, density)
 
         if self.is_top_wall:
-            node_data.distributions.old_population = self.update_top_wall(node_data.distributions.old_population, node_data.moments.density)
+            population = self.update_top_wall(population, density)
         if self.is_bottom_wall:
-            node_data.distributions.old_population = self.update_bottom_wall(node_data.distributions.old_population, node_data.moments.density)
+            population = self.update_bottom_wall(population, density)
 
-        return node_data
+        return population

@@ -23,7 +23,7 @@ class BounceBackBoundaryUpdate(nn.Module):
         super(BounceBackBoundaryUpdate, self).__init__()
         self.opposite_lattice_indices: List[int] = opposite_lattice_indices
 
-    def forward(self, node_data: NodeData) -> NodeData:
+    def forward(self, old_population: torch.Tensor, density: torch.Tensor, velocity: torch.Tensor, bounce_back_mask: torch.Tensor) -> torch.Tensor:
         """The forward pass of the module that performs the actual bounce back update.
 
         Args:
@@ -35,8 +35,8 @@ class BounceBackBoundaryUpdate(nn.Module):
         Returns:
             NodeData: The node data which is updated according to the bounce back algorithm.
         """
-        discrete_velocities = node_data.distributions.old_population
-        if node_data.bounce_back_mask is not None:
-            discrete_velocities = torch.where(node_data.bounce_back_mask > 0, discrete_velocities[self.opposite_lattice_indices], discrete_velocities)
-        node_data.distributions.old_population = discrete_velocities
-        return node_data
+        discrete_velocities = old_population.clone()
+        if bounce_back_mask is not None:
+            discrete_velocities = torch.where(bounce_back_mask > 0, discrete_velocities[self.opposite_lattice_indices], discrete_velocities)
+        # node_data.distributions.old_population = discrete_velocities
+        return discrete_velocities

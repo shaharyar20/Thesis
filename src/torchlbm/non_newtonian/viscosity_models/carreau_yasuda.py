@@ -43,7 +43,7 @@ class CarreauYasudaModule(nn.Module):
         self.kron = torch.einsum('aQ, bQ-> Qab', lattice_velocities, lattice_velocities)
         self.register_buffer("kron_const", self.kron)
 
-    def forward(self, node_data: NodeData) -> torch.Tensor:
+    def forward(self, old_population: torch.Tensor, new_population: torch.Tensor, relaxation_omega: torch.Tensor, density: torch.Tensor) -> torch.Tensor:
         """The forward pass of the Carreau-Yasuda Model modules. Gets as input the discretized velocity distribution of the start of the timestept,
         and the equilibrium distribution calculated based on it. It returns the post-collision distribution.
 
@@ -53,7 +53,7 @@ class CarreauYasudaModule(nn.Module):
         Returns:
             torch.Tensor: The discretized velocity distribution after collision.
         """
-        neq = node_data.distributions.old_population - node_data.distributions.new_population
+        neq = old_population - new_population
 
         second_moment = torch.einsum(
             "QNML,Qde->NMLde",
@@ -61,7 +61,7 @@ class CarreauYasudaModule(nn.Module):
             self.kron_const,
         )
         norm_second_moment = torch.norm(second_moment, dim=[-2, -1])
-        shear_rate = node_data.relaxation_omega * norm_second_moment / (self.cs**2 * node_data.moments.density) / self.unit_converter.conversion_factor_time
+        shear_rate = relaxation_omega * norm_second_moment / (self.cs**2 * density) / self.unit_converter.conversion_factor_time
         viscosity = self.viscosity_inf + (self.viscosity_0 - self.viscosity_inf) * (1 + (self.lam * shear_rate) ** self.a) ** self.exp
 
         new_relaxation_omega = 1.0 / self.unit_converter.convert_kinematic_viscosity_to_relaxation_time_lattice_units(viscosity)
