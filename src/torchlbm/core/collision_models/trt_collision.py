@@ -26,7 +26,7 @@ class TRTCollisionModule(nn.Module):
         self.register_buffer("my_opposite_lattice_indices_const", self.my_opposite_lattice_indices)
         self.magic_parameter = magic_parameter
 
-    def forward(self, node_data: NodeData) -> torch.Tensor:
+    def forward(self, old_population: torch.Tensor, new_population: torch.Tensor, relaxation_omega: torch.Tensor) -> torch.Tensor:
         """The forward pass of the collision module. Gets as input the discretized velocity distribution of the start of the timestept,
         and the equilibrium distribution calculated based on it. It returns the post-collision distribution.
 
@@ -40,22 +40,22 @@ class TRTCollisionModule(nn.Module):
         Returns:
             torch.Tensor: The discretized velocity distribution after collision.
         """
-        symmetric_omega = node_data.relaxation_omega
+        symmetric_omega = relaxation_omega
         antisymmetric_omega = 1.0 / (self.magic_parameter / (1.0 / symmetric_omega - 0.5) + 0.5)
 
-        symmetric_discrete_velocities = node_data.distributions.old_population + node_data.distributions.old_population[self.my_opposite_lattice_indices_const]
+        symmetric_discrete_velocities = old_population + old_population[self.my_opposite_lattice_indices_const]
         antisymmetric_discrete_velocities = (
-            node_data.distributions.old_population - node_data.distributions.old_population[self.my_opposite_lattice_indices_const]
+            old_population - old_population[self.my_opposite_lattice_indices_const]
         )
         symmetric_equilibrium_discrete_velocities = (
-            node_data.distributions.new_population + node_data.distributions.new_population[self.my_opposite_lattice_indices_const]
+            new_population + new_population[self.my_opposite_lattice_indices_const]
         )
         antisymmetric_equilibrium_discrete_velocities = (
-            node_data.distributions.new_population - node_data.distributions.new_population[self.my_opposite_lattice_indices_const]
+            new_population - new_population[self.my_opposite_lattice_indices_const]
         )
 
         discrete_velocities_post_collision = (
-            node_data.distributions.old_population
+            old_population
             - symmetric_omega * 0.5 * (symmetric_discrete_velocities - symmetric_equilibrium_discrete_velocities)
             - antisymmetric_omega * 0.5 * (antisymmetric_discrete_velocities - antisymmetric_equilibrium_discrete_velocities)
         )

@@ -23,16 +23,16 @@ class EntropicMRTCollisionModule(nn.Module):
                                                                      It is a property of the underlying velocity set.
         """
         super(EntropicMRTCollisionModule, self).__init__()
-        self.relaxation_omega = relaxation_omega
-        self.relaxation = torch.tensor([relaxation_omega])
-        self.register_buffer("relaxation_const", self.relaxation)
+        # self.relaxation_omega = relaxation_omega
+        # self.relaxation = torch.tensor([relaxation_omega])
+        # self.register_buffer("relaxation_const", self.relaxation)
         self.lattice_velocities = torch.tensor(lattice_velocities).clone().detach()
         self.register_buffer("lattice_velocities_const", self.lattice_velocities)
         self.model = model
         self.lattice_weights = torch.tensor(lattice_weights).clone().detach()
         self.register_buffer("lattice_weights_const", self.lattice_weights)
 
-    def forward(self, node_data: NodeData) -> torch.Tensor:
+    def forward(self, old_population: torch.Tensor, new_population: torch.Tensor, relaxation_omega: torch.Tensor) -> torch.Tensor:
         """The forward pass of the collision module. Gets as input the discretized velocity distribution of the start of the timestept,
         and the equilibrium distribution calculated based on it. It returns the post-collision distribution.
         Args:
@@ -44,11 +44,11 @@ class EntropicMRTCollisionModule(nn.Module):
         Returns:
             torch.Tensor: The discretized velocity distribution after collision.
         """
-        beta = 0.5 * self.relaxation_const
+        beta = 0.5 * relaxation_omega
         invbeta = 1.0 / beta
 
-        f_i = node_data.distributions.old_population
-        f_eq_i = node_data.distributions.new_population
+        f_i = old_population
+        f_eq_i = new_population
         f_neq_i = f_i - f_eq_i
 
         # Alternative implementation: KBC only stabilizes the collision for voxels, where entropy decreases for linear BGK
@@ -71,7 +71,7 @@ class EntropicMRTCollisionModule(nn.Module):
 
         # Karlin 2014, eq. (10)
         f_post_i = f_i - beta * (2.0 * delta_s + gamma * delta_h)
-        f_bgk_i = (1.0 - self.relaxation_const) * f_i + self.relaxation_const * f_eq_i
+        f_bgk_i = (1.0 - relaxation_omega) * f_i + relaxation_omega * f_eq_i
 
         mod = False
         if mod:

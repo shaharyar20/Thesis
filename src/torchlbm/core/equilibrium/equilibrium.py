@@ -29,7 +29,7 @@ class EquilibriumCalculationModule(nn.Module):
         self.lattice_weights = torch.tensor(lattice_weights)
         self.register_buffer("lattice_weights_const", self.lattice_weights)
 
-    def forward(self, node_data: NodeData) -> NodeData:
+    def forward(self, density: torch.Tensor, velocity: torch.Tensor, forcing_velocity: torch.Tensor) -> torch.Tensor:
         """The forward pass of the equilibrium calculation module. The equilibrium distribution for the Navier-Stokes equations are calculated.
         It gets as input macroscopic quantities, the moments of the velocity distribution (density and velocity) and calculates the
         equilibrium distribution based on them.
@@ -40,10 +40,10 @@ class EquilibriumCalculationModule(nn.Module):
         Returns:
             NodeData: The modified node_data object where the new_population is overwritten with the equilibrium distribution.
         """
-        if node_data.moments.forcing_velocity is None:
-            macroscopic_velocity = node_data.moments.velocity
+        if forcing_velocity is None:
+            macroscopic_velocity = velocity
         else:
-            macroscopic_velocity = node_data.moments.velocity + node_data.moments.forcing_velocity
+            macroscopic_velocity = velocity + forcing_velocity
             
         projected_discrete_velocities = torch.einsum(
             "dQ,dNML->QNML",
@@ -55,10 +55,10 @@ class EquilibriumCalculationModule(nn.Module):
             ord=2,
             dim=0,
         )
-        node_data.distributions.new_population = (
-            node_data.moments.density.unsqueeze(0)
+        equilibrium_population = (
+            density.unsqueeze(0)
             * self.lattice_weights_const.unsqueeze(-1).unsqueeze(-1).unsqueeze(-1)
             * (1 + 3 * projected_discrete_velocities + 9 / 2 * projected_discrete_velocities**2 - 3 / 2 * macroscopic_velocity_magnitude.unsqueeze(0) ** 2)
         )
 
-        return node_data
+        return equilibrium_population

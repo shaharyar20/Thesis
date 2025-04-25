@@ -220,7 +220,11 @@ class TorchlbmState:
             relaxation_omega=initial_relaxation_omega,
             bounce_back_mask=initial_bounce_back_mask.to(torch.int8) if initial_bounce_back_mask is not None else None,
         )
-        self.node_data = equilibrium_module(self.node_data)
+        self.node_data.distributions.new_population = equilibrium_module(
+            self.node_data.moments.density,
+            self.node_data.moments.velocity,
+            self.node_data.moments.forcing_velocity,
+        )
         self.node_data.distributions.old_population = self.node_data.distributions.new_population.clone()
 
     def mps(self) -> None:
