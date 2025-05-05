@@ -6,6 +6,7 @@ from .domain_setup import DomainSetup
 from .initial_condition_setup import InitialConditionSetup
 from .io_setup import IoSetup
 from .lattice_setup import LatticeSetup
+from torchlbm.thermal.simulation_setup.thermal_setup import ThermalSetup
 import torch
 
 
@@ -32,6 +33,7 @@ class TorchlbmSetup(SetupSet):
             PhysicalSetup(),
             LatticeSetup(),
             AlgorithmSetup(),
+            ThermalSetup(),
         ]
 
         super().__init__(name, settings)

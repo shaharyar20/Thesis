@@ -95,6 +95,18 @@ def get_single_node_output_data(state: TorchlbmState) -> vtkImageData:
     imageData.GetCellData().AddArray(velocity_array)
     imageData.GetCellData().AddArray(bounce_back_field_array)
 
+    if state.torchlbm_setup["Thermal"]["Active"].value:
+
+        temperature = node.moments.temperature[start[0] : end[0], start[1] : end[1], start[2] : end[2]].clone().detach()
+        # temperature = unit_converter.convert_temperature_to_physical_units(temperature)
+        temperature = torch.where(bounce_back_field_original > 0, 0.0, temperature)
+        temperature = torch.moveaxis(temperature, 2, 0)
+        temperature = torch.moveaxis(temperature, 1, 2)
+        temperature = temperature.flatten().detach().numpy()
+        temperature_array = numpy_support.numpy_to_vtk(temperature)
+        temperature_array.SetName("temperature")
+        imageData.GetCellData().AddArray(temperature_array)
+
     if state.torchlbm_setup["Physics"]["NonNewtonian"]["Active"].value:
 
         relaxation_omega = node.relaxation_omega[start[0] : end[0], start[1] : end[1], start[2] : end[2]].clone().detach()

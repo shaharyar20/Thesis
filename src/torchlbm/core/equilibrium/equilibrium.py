@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 
 import torch.nn as nn
 import torch
@@ -29,7 +29,7 @@ class EquilibriumCalculationModule(nn.Module):
         self.lattice_weights = torch.tensor(lattice_weights)
         self.register_buffer("lattice_weights_const", self.lattice_weights)
 
-    def forward(self, density: torch.Tensor, velocity: torch.Tensor, forcing_velocity: torch.Tensor) -> torch.Tensor:
+    def forward(self, density: torch.Tensor, velocity: torch.Tensor, forcing_velocity: Optional[torch.Tensor]) -> torch.Tensor:
         """The forward pass of the equilibrium calculation module. The equilibrium distribution for the Navier-Stokes equations are calculated.
         It gets as input macroscopic quantities, the moments of the velocity distribution (density and velocity) and calculates the
         equilibrium distribution based on them.

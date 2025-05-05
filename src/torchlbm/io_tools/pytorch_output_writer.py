@@ -75,6 +75,15 @@ def get_single_node_pytorch_data(state: TorchlbmState):
             name = "bounce_back_mask"
             result[name] = bounce_back_mask
 
+    if state.torchlbm_setup["Thermal"]["Active"].value:
+        if state.torchlbm_setup["Output"]["Temperature"]["Active"].value:
+            if "PyTorch" in state.torchlbm_setup["Output"]["Temperature"]["Types"].value:
+                name = "temperature"
+                temperature = node.moments.temperature[start[0] : end[0], start[1] : end[1], start[2] : end[2]].clone().detach()
+                # temperature = unit_converter.convert_temperature_to_physical_units(temperature)
+                temperature = torch.where(bounce_back_mask > 0, 0.0, temperature)
+                result[name] = temperature
+
     if state.torchlbm_setup["Output"]["KinematicViscosity"]["Active"].value and state.torchlbm_setup["Physics"]["NonNewtonian"]["Active"].value:
         if "PyTorch" in state.torchlbm_setup["Output"]["KinematicViscosity"]["Types"].value:
             name = "kinematic_viscosity"

@@ -11,6 +11,7 @@ from torchlbm.core.lattices.lattice_dictionaries import (
     ThreeDimensionalLattices,
 )
 from torchlbm.node_data import NodeData, Distributions, Moments
+from torchlbm.thermal_node_data import ThermalNodeData, ThermalDistributions, ThermalMoments
 from torchlbm.unit_converter import UnitConverter
 from torchlbm.logger import Logger
 
@@ -211,21 +212,59 @@ class TorchlbmState:
         iniitial_forcing_velocity = torch.zeros_like(velocity_profile) if self.torchlbm_setup["Physics"]["VolumeForces"]["Active"].value else None
         initial_volume_force_field = torch.zeros_like(velocity_profile) if self.torchlbm_setup["Physics"]["VolumeForces"]["Active"].value else None
 
-        self.node_data: NodeData = NodeData(
-            distributions=Distributions(
-                torch.empty([self.lattice.n_discrete_velocities, density_shape[0], density_shape[1], density_shape[2]]),
-                torch.empty([self.lattice.n_discrete_velocities, density_shape[0], density_shape[1], density_shape[2]]),
-            ),
-            moments=Moments(initial_density, velocity_profile, iniitial_forcing_velocity, initial_volume_force_field),
-            relaxation_omega=initial_relaxation_omega,
-            bounce_back_mask=initial_bounce_back_mask.to(torch.int8) if initial_bounce_back_mask is not None else None,
-        )
-        self.node_data.distributions.new_population = equilibrium_module(
-            self.node_data.moments.density,
-            self.node_data.moments.velocity,
-            self.node_data.moments.forcing_velocity,
-        )
-        self.node_data.distributions.old_population = self.node_data.distributions.new_population.clone()
+        if self.torchlbm_setup["Thermal"]["Active"].value:
+            initial_temperature = initial_condition.get_initial_temperature(meshgrid_for_node[0], meshgrid_for_node[1], meshgrid_for_node[2])
+            initial_temp_relaxation_omega = torch.tensor(1.0 / (
+                3.0 * self.torchlbm_setup["Thermal"]["HeatConductivity"].value + 0.5
+            ))
+
+            self.node_data: ThermalNodeData = ThermalNodeData(
+                distributions=ThermalDistributions(
+                    torch.empty([self.lattice.n_discrete_velocities, density_shape[0], density_shape[1], density_shape[2]]),
+                    torch.empty([self.lattice.n_discrete_velocities, density_shape[0], density_shape[1], density_shape[2]]),
+                    torch.empty([self.lattice.n_discrete_velocities, density_shape[0], density_shape[1], density_shape[2]]),
+                    torch.empty([self.lattice.n_discrete_velocities, density_shape[0], density_shape[1], density_shape[2]]),
+                ),
+                moments=ThermalMoments(
+                    initial_density,
+                    velocity_profile,
+                    initial_temperature,
+                    iniitial_forcing_velocity,
+                    initial_volume_force_field,
+                ),
+                vel_relaxation_omega=initial_relaxation_omega,
+                temp_relaxation_omega=initial_temp_relaxation_omega,
+                bounce_back_mask=initial_bounce_back_mask.to(torch.int8) if initial_bounce_back_mask is not None else None,
+            )
+            self.node_data.distributions.vel_new_population = equilibrium_module(
+                self.node_data.moments.density,
+                self.node_data.moments.velocity,
+                self.node_data.moments.forcing_velocity,
+            )
+            self.node_data.distributions.temp_new_population = equilibrium_module(
+                self.node_data.moments.temperature,
+                self.node_data.moments.velocity,
+                self.node_data.moments.forcing_velocity,
+            )
+            self.node_data.distributions.vel_old_population = self.node_data.distributions.vel_new_population.clone()
+            self.node_data.distributions.temp_old_population = self.node_data.distributions.temp_new_population.clone()
+            
+        else:
+            self.node_data: NodeData = NodeData(
+                distributions=Distributions(
+                    torch.empty([self.lattice.n_discrete_velocities, density_shape[0], density_shape[1], density_shape[2]]),
+                    torch.empty([self.lattice.n_discrete_velocities, density_shape[0], density_shape[1], density_shape[2]]),
+                ),
+                moments=Moments(initial_density, velocity_profile, iniitial_forcing_velocity, initial_volume_force_field),
+                relaxation_omega=initial_relaxation_omega,
+                bounce_back_mask=initial_bounce_back_mask.to(torch.int8) if initial_bounce_back_mask is not None else None,
+            )
+            self.node_data.distributions.new_population = equilibrium_module(
+                self.node_data.moments.density,
+                self.node_data.moments.velocity,
+                self.node_data.moments.forcing_velocity,
+            )
+            self.node_data.distributions.old_population = self.node_data.distributions.new_population.clone()
 
     def mps(self) -> None:
         """Moves all relevant data to the MPS device (tested for Apple MacBook with M chips.)"""

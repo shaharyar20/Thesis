@@ -35,6 +35,8 @@ class IoSetup(SetupSet):
         bounce_back_mask_output_quantity_settings.append(SetupTag("ColorbarLabel", "Bounce Back Mask", False, StringConverter()))
         kinematic_viscosity_output_quantity_settings = output_quantity_settings.copy()
         kinematic_viscosity_output_quantity_settings.append(SetupTag("ColorbarLabel", r"$\nu [m^2/s]$", False, StringConverter()))
+        temperature_output_quantity_settings = output_quantity_settings.copy()
+        temperature_output_quantity_settings.append(SetupTag("ColorbarLabel", r"$T []$", False, StringConverter()))
 
         settings = [
             SetupTag("Active", True, True, BoolConverter()),
@@ -58,6 +60,10 @@ class IoSetup(SetupSet):
             SetupSet(
                 "KinematicViscosity",
                 kinematic_viscosity_output_quantity_settings,
+            ),
+            SetupSet(
+                "Temperature",
+                temperature_output_quantity_settings,
             ),
         ]
 

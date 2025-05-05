@@ -1,5 +1,6 @@
 from typing import List
 import torch
+import torch.nn as nn
 
 from torchlbm.state import TorchlbmState
 from torchlbm.boundaries.periodic_boundary_update import PeriodicBoundaryUpdate
@@ -22,7 +23,7 @@ def get_boundary_condition_modules(state: TorchlbmState) -> List:
     Returns:
         List: The created list of boundary condition update objects.
 """
-    boundary_condition_modules = []
+    boundary_condition_modules = nn.ModuleList()
     if (
         state.torchlbm_setup["Domain"]["BoundaryConditions"]["East"]["Type"].value == "Wall"
         or state.torchlbm_setup["Domain"]["BoundaryConditions"]["West"]["Type"].value == "Wall"

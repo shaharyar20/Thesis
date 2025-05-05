@@ -49,6 +49,19 @@ class TorchlbmInitialCondition(metaclass=abc.ABCMeta):
         """
         pass
 
+    def get_initial_temperature(self, X, Y, Z) -> torch.Tensor:
+        """Returns the initial temperature. It can be calculated based on the X, Y, and Z coordinate.
+
+        Args:
+            X (torch.Tensor): The X coordinate as a (Tx, Ty, Tz) tensor,
+                              where Tx, Ty, and Tz denote the total number of the computational domain.
+            Y (torch.Tensor): The Y coordinate as a (Tx, Ty, Tz) tensor,
+                              where Tx, Ty, and Tz denote the total number of the computational domain.
+            Z (torch.Tensor): The Z coordinate as a (Tx, Ty, Tz) tensor,
+                              where Tx, Ty, and Tz denote the total number of the computational domain.
+        """
+        pass
+
     def get_bounce_back_mask(self, X, Y, Z) -> torch.Tensor:
         """Returns a tensor that contains the mask for which the bounce back boundary condition is applied.
         Contains ones in case the cell is a solid cell and zero otherwises.
