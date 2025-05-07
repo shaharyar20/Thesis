@@ -63,7 +63,6 @@ class ThermalAdvanceModule(nn.Module):
         streaming_module,
         macroscopic_module,
         equilibrium_module,
-        multiphase_module,
         boundary_condition_modules,
         thermal_boundary_condition_modules,
         forcing_module,
@@ -92,7 +91,6 @@ class ThermalAdvanceModule(nn.Module):
         self.streaming_module = streaming_module
         self.macroscopic_module = macroscopic_module
         self.equilibrium_module = equilibrium_module
-        self.multiphase_module = multiphase_module
         self.boundary_condition_modules = boundary_condition_modules
         self.thermal_boundary_condition_modules = thermal_boundary_condition_modules
         self.forcing_module = forcing_module

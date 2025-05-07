@@ -209,8 +209,12 @@ class TorchlbmState:
 
         density_shape = initial_density.shape
 
-        iniitial_forcing_velocity = torch.zeros_like(velocity_profile) if self.torchlbm_setup["Physics"]["VolumeForces"]["Active"].value else None
-        initial_volume_force_field = torch.zeros_like(velocity_profile) if self.torchlbm_setup["Physics"]["VolumeForces"]["Active"].value else None
+        if self.torchlbm_setup["Physics"]["VolumeForces"]["Active"].value or self.torchlbm_setup["Multiphase"]["Active"].value:
+            initial_forcing_velocity = torch.zeros_like(velocity_profile)
+            initial_volume_force_field = torch.zeros_like(velocity_profile)
+        else:
+            initial_forcing_velocity = None
+            initial_volume_force_field = None
 
         if self.torchlbm_setup["Thermal"]["Active"].value:
             initial_temperature = initial_condition.get_initial_temperature(meshgrid_for_node[0], meshgrid_for_node[1], meshgrid_for_node[2])
@@ -229,7 +233,7 @@ class TorchlbmState:
                     initial_density,
                     velocity_profile,
                     initial_temperature,
-                    iniitial_forcing_velocity,
+                    initial_forcing_velocity,
                     initial_volume_force_field,
                 ),
                 vel_relaxation_omega=initial_relaxation_omega,
@@ -248,14 +252,14 @@ class TorchlbmState:
             )
             self.node_data.distributions.vel_old_population = self.node_data.distributions.vel_new_population.clone()
             self.node_data.distributions.temp_old_population = self.node_data.distributions.temp_new_population.clone()
-            
+
         else:
             self.node_data: NodeData = NodeData(
                 distributions=Distributions(
                     torch.empty([self.lattice.n_discrete_velocities, density_shape[0], density_shape[1], density_shape[2]]),
                     torch.empty([self.lattice.n_discrete_velocities, density_shape[0], density_shape[1], density_shape[2]]),
                 ),
-                moments=Moments(initial_density, velocity_profile, iniitial_forcing_velocity, initial_volume_force_field),
+                moments=Moments(initial_density, velocity_profile, initial_forcing_velocity, initial_volume_force_field),
                 relaxation_omega=initial_relaxation_omega,
                 bounce_back_mask=initial_bounce_back_mask.to(torch.int8) if initial_bounce_back_mask is not None else None,
             )

@@ -64,7 +64,9 @@ class AdvanceModule(nn.Module):
         streaming_module,
         macroscopic_module,
         equilibrium_module,
-        multiphase_module,
+        pseudopotential_module,
+        multiphase_forcing_module,
+        is_multiphase_active,
         boundary_condition_modules: nn.ModuleList,
         forcing_module,
         is_forcing_active,
@@ -92,12 +94,14 @@ class AdvanceModule(nn.Module):
         self.streaming_module = streaming_module
         self.macroscopic_module = macroscopic_module
         self.equilibrium_module = equilibrium_module
-        # self.multiphase_module = multiphase_module
         self.boundary_condition_modules: nn.ModuleList = boundary_condition_modules
         self.forcing_module = forcing_module
         self.is_forcing_active: bool = is_forcing_active
         self.non_newtonian_module = non_newtonian_module
         self.is_non_newtonian_active: bool = is_non_newtonian_active
+        self.pseudopotential_module = pseudopotential_module
+        self.multiphase_forcing_module = multiphase_forcing_module
+        self.is_multiphase_active: bool = is_multiphase_active
 
     def initialize_simulation(self, node_data: NodeData) -> NodeData:
 
@@ -148,11 +152,12 @@ class AdvanceModule(nn.Module):
         Returns:
             Tuple[NodeData, List[IBMmeshData]]: Return the updated node data and immersed-boundary objects.
         """
-        # vol = node_data.moments.volume_force_field
-        # if vol is not None:
-        #     node_data.moments.volume_force_field = torch.zeros_like(node_data.moments.volume_force_field)
+        if node_data.moments.volume_force_field is not None:
+            node_data.moments.volume_force_field = torch.zeros_like(node_data.moments.volume_force_field)
 
-        # node_data.moments.forcing_velocity = self.multiphase_module(node_data)
+        if self.is_multiphase_active:
+            pseudopotential = self.pseudopotential_module(node_data.moments.density)
+            node_data.moments.volume_force_field = self.multiphase_forcing_module(pseudopotential, node_data.moments.volume_force_field)
 
         if self.is_forcing_active:
             node_data.moments.forcing_velocity, node_data.moments.volume_force_field = self.forcing_module(node_data.moments.volume_force_field, node_data.moments.density)

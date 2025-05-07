@@ -26,7 +26,6 @@ from torchlbm.module_factory.boundary_condition_factory import (
     get_bounce_back_boundary_module,
 )
 from torchlbm.node_data import NodeData, Distributions, Moments
-from torchlbm.module_factory.multiphase_module_factory import get_multiphase_module
 from torchlbm.module_factory.forcing_module_factory import get_forcing_module
 from torchlbm.module_factory.equilibrium_calculation_module_factory import get_equilibrium_calculation_module
 from torchlbm.ml_models.porous_initialization import PorousInitializationModule
@@ -94,7 +93,6 @@ class HybridAdvancelbmSimulation:
             streaming_module=get_streaming_module(self.state),
             macroscopic_module=get_macroscopic_quantity_calculation_module(self.state),
             equilibrium_module=get_equilibrium_calculation_module(self.state),
-            multiphase_module=get_multiphase_module(self.state),
             periodic_module=get_periodic_boundary_module(self.state),
             wall_module=get_wall_boundary_module(self.state),
             outlet_module=get_outlet_boundary_module(self.state),

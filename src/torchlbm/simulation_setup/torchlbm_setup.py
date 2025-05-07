@@ -7,6 +7,7 @@ from .initial_condition_setup import InitialConditionSetup
 from .io_setup import IoSetup
 from .lattice_setup import LatticeSetup
 from torchlbm.thermal.simulation_setup.thermal_setup import ThermalSetup
+from torchlbm.multiphase.simulation_setup.multiphase_setup import MultiphaseSetup
 import torch
 
 
@@ -34,6 +35,7 @@ class TorchlbmSetup(SetupSet):
             LatticeSetup(),
             AlgorithmSetup(),
             ThermalSetup(),
+            MultiphaseSetup(),
         ]
 
         super().__init__(name, settings)

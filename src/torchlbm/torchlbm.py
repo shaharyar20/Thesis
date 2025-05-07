@@ -21,11 +21,11 @@ from torchlbm.module_factory.collision_module_factory import get_collision_modul
 from torchlbm.module_factory.streaming_module_factory import get_streaming_module
 from torchlbm.module_factory.macroscopic_quantity_calculation_module_factory import get_macroscopic_quantity_calculation_module
 from torchlbm.module_factory.boundary_condition_factory import get_boundary_condition_modules
-from torchlbm.module_factory.multiphase_module_factory import get_multiphase_module
 from torchlbm.module_factory.forcing_module_factory import get_forcing_module
 from torchlbm.module_factory.equilibrium_calculation_module_factory import get_equilibrium_calculation_module
 from torchlbm.module_factory.non_newtonian_module_factory import get_non_newtonian_module
 from torchlbm.thermal.module_factory.thermal_boundary_condition_factory import get_thermal_boundary_condition_modules
+from torchlbm.multiphase.module_factory.multiphase_module_factory import get_pseudopotential_module, get_multiphase_forcing_module
 
 from functools import wraps
 import time
@@ -112,7 +112,6 @@ class LbmSimulation:
                 streaming_module=get_streaming_module(self.state),
                 macroscopic_module=get_macroscopic_quantity_calculation_module(self.state),
                 equilibrium_module=get_equilibrium_calculation_module(self.state),
-                multiphase_module=get_multiphase_module(self.state),
                 boundary_condition_modules=get_boundary_condition_modules(self.state),
                 thermal_boundary_condition_modules=get_thermal_boundary_condition_modules(self.state),
                 forcing_module=get_forcing_module(self.state),
@@ -127,7 +126,6 @@ class LbmSimulation:
                 streaming_module=get_streaming_module(self.state),
                 macroscopic_module=get_macroscopic_quantity_calculation_module(self.state),
                 equilibrium_module=get_equilibrium_calculation_module(self.state),
-                multiphase_module=get_multiphase_module(self.state),
                 boundary_condition_modules=get_boundary_condition_modules(self.state),
                 thermal_boundary_condition_modules=get_thermal_boundary_condition_modules(self.state),
                 forcing_module=get_forcing_module(self.state),
@@ -142,10 +140,12 @@ class LbmSimulation:
                 streaming_module=get_streaming_module(self.state),
                 macroscopic_module=get_macroscopic_quantity_calculation_module(self.state),
                 equilibrium_module=get_equilibrium_calculation_module(self.state),
-                multiphase_module=get_multiphase_module(self.state),
+                pseudopotential_module=get_pseudopotential_module(self.state),
+                multiphase_forcing_module=get_multiphase_forcing_module(self.state),
+                is_multiphase_active=self.state.torchlbm_setup["Multiphase"]["Active"].value,
                 boundary_condition_modules=get_boundary_condition_modules(self.state),
                 forcing_module=get_forcing_module(self.state),
-                is_forcing_active=self.state.torchlbm_setup["Physics"]["VolumeForces"]["Active"].value,
+                is_forcing_active=self.state.torchlbm_setup["Physics"]["VolumeForces"]["Active"].value or self.state.torchlbm_setup["Multiphase"]["Active"].value,
                 non_newtonian_module=get_non_newtonian_module(self.state),
                 is_non_newtonian_active=self.state.torchlbm_setup["Physics"]["NonNewtonian"]["Active"].value,
             )
