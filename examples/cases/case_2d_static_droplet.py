@@ -82,12 +82,12 @@ def main():
     # simulation_setup["Output"]["KinematicViscosity"]["Types"].value = ["PyTorch", "Picture"]
 
     simulation_setup["Physics"]["MachNumber"].value = 0.05
-    simulation_setup["Physics"]["EndTime"].value = 5.0
+    simulation_setup["Physics"]["EndTime"].value = 2.0
     simulation_setup["Physics"]["CharacteristicVelocityPu"].value = 1.0
     simulation_setup["Physics"]["KinematicViscosityPu"].value = 0.01 # Make tau 1
     simulation_setup["Physics"]["Precision"].value = "Single"
     simulation_setup["Physics"]["VolumeForces"]["Active"].value = True
-    simulation_setup["Physics"]["VolumeForces"]["Type"].value = "ShanChen"
+    simulation_setup["Physics"]["VolumeForces"]["Type"].value = "Guo"
     simulation_setup["Physics"]["VolumeForces"]["ForceVector"].value = [0.0, 0.0, 0.0]
 
     simulation_setup["Multiphase"]["Active"].value = True
@@ -104,8 +104,8 @@ def main():
 
     # simulation_setup["Algorithm"]["Operators"]["EquilibriumCalculation"]["Type"].value = "Classical"
     # simulation_setup["Algorithm"]["Operators"]["EquilibriumCalculation"]["ModelPath"].value = "distribution_learning/models/eq_model.pth"
-    simulation_setup["Algorithm"]["Operators"]["Collision"]["Type"].value = "SRT"
-    # simulation_setup["Algorithm"]["Operators"]["Collision"]["MRT"]["FreeParameters"].value = [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+    simulation_setup["Algorithm"]["Operators"]["Collision"]["Type"].value = "MRT"
+    simulation_setup["Algorithm"]["Operators"]["Collision"]["MRT"]["FreeParameters"].value = [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
     # simulation_setup["Algorithm"]["Operators"]["Collision"]["ModelPath"].value = "distribution_learning/models/eq_model.pth"
 
     simulation_setup["Lattice"]["NSE"]["1D"].value = "D1Q2"

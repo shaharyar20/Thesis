@@ -79,6 +79,7 @@ class Distributions:
         self,
         old_population: torch.Tensor,
         new_population: torch.Tensor,
+        collision_source_term: Optional[torch.Tensor] = None,
     ) -> None:
         """The constructor for the DistributionBlock. It initializes the populations, i.e. the discretized versions of the velocity distribution.
 
@@ -89,22 +90,26 @@ class Distributions:
 
         self.old_population = old_population
         self.new_population = new_population
+        self.collision_source_term = collision_source_term
 
     def mps(self) -> None:
         """Moves all objects to the mps device."""
         mps_device = torch.device("mps")
         self.old_population = self.old_population.to(mps_device)
         self.new_population = self.new_population.to(mps_device)
+        self.collision_source_term = self.collision_source_term.to(mps_device)
 
     def cuda(self) -> None:
         """Moves all objects to the cuda device."""
         self.old_population = self.old_population.cuda()
         self.new_population = self.new_population.cuda()
+        self.collision_source_term = self.collision_source_term.cuda()
 
     def cpu(self) -> None:
         """Moves all objects to the cpu device."""
         self.old_population = self.old_population.cpu()
         self.new_population = self.new_population.cpu()
+        self.collision_source_term = self.collision_source_term.cpu()
 
 
 class NodeData:

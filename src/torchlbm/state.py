@@ -212,9 +212,14 @@ class TorchlbmState:
         if self.torchlbm_setup["Physics"]["VolumeForces"]["Active"].value or self.torchlbm_setup["Multiphase"]["Active"].value:
             initial_forcing_velocity = torch.zeros_like(velocity_profile)
             initial_volume_force_field = torch.zeros_like(velocity_profile)
+            if self.torchlbm_setup["Physics"]["VolumeForces"]["Type"].value == "Guo":
+                initial_collision_source_term = torch.zeros([self.lattice.n_discrete_velocities, density_shape[0], density_shape[1], density_shape[2]])
+            else:
+                initial_collision_source_term = None
         else:
             initial_forcing_velocity = None
             initial_volume_force_field = None
+            initial_collision_source_term = None
 
         if self.torchlbm_setup["Thermal"]["Active"].value:
             initial_temperature = initial_condition.get_initial_temperature(meshgrid_for_node[0], meshgrid_for_node[1], meshgrid_for_node[2])
@@ -258,6 +263,7 @@ class TorchlbmState:
                 distributions=Distributions(
                     torch.empty([self.lattice.n_discrete_velocities, density_shape[0], density_shape[1], density_shape[2]]),
                     torch.empty([self.lattice.n_discrete_velocities, density_shape[0], density_shape[1], density_shape[2]]),
+                    initial_collision_source_term,
                 ),
                 moments=Moments(initial_density, velocity_profile, initial_forcing_velocity, initial_volume_force_field),
                 relaxation_omega=initial_relaxation_omega,

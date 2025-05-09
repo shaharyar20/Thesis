@@ -45,7 +45,7 @@ class MRTCollisionModule(nn.Module):
         self.register_buffer("relaxation_vector_const", self.relaxation_vector)
 
 
-    def forward(self, old_population: torch.Tensor, new_population: torch.Tensor, relaxation_omega: torch.Tensor) -> torch.Tensor:
+    def forward(self, old_population: torch.Tensor, new_population: torch.Tensor, relaxation_omega: torch.Tensor, collision_source_term: torch.Tensor) -> torch.Tensor:
         """The forward pass of the collision module. Gets as input the discretized velocity distribution of the start of the timestept,
         and the equilibrium distribution calculated based on it. It returns the post-collision distribution.
 
@@ -63,6 +63,11 @@ class MRTCollisionModule(nn.Module):
         moment_populations = torch.einsum("iQ,QNML->iNML", self.population_to_momentum_transform_const, old_population)
         moment_equilibrium_populations = torch.einsum("iQ,QNML->iNML", self.population_to_momentum_transform_const, new_population)
         collide = self.relaxation_vector_const.unsqueeze(-1).unsqueeze(-1).unsqueeze(-1) * (moment_populations - moment_equilibrium_populations)
+
+        if collision_source_term is not None:
+            moment_collision_source_term = torch.einsum("iQ,QNML->iNML", self.population_to_momentum_transform_const, collision_source_term)
+            collide -= (1.0 - 0.5 * self.relaxation_vector_const.unsqueeze(-1).unsqueeze(-1).unsqueeze(-1)) * moment_collision_source_term
+
         discrete_velocities_post_collision = torch.einsum("iQ,QNML->iNML", self.momentum_to_population_transform_const, moment_populations - collide)
 
         return discrete_velocities_post_collision

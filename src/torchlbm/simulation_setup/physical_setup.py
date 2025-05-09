@@ -16,7 +16,7 @@ def equation_type():
 
 
 def volume_force_type():
-    return ["ShanChen"]
+    return ["ShanChen", "Guo"]
 
 def non_newtonian_type():
     return ["CarreauYasuda"]

@@ -6,7 +6,7 @@ from typing import List
 from torchlbm.node_data import NodeData
 
 
-class ShanChenForcingModule(nn.Module):
+class GuoForcingModule(nn.Module):
     """PyTorch module that implements the calculation of a volume force based on the Shan-Chem scheme.
     It is implemented as a PyTorch module to allow composing algorithms based on consecutively applied modules.
 
@@ -17,6 +17,8 @@ class ShanChenForcingModule(nn.Module):
     def __init__(
         self,
         force_vector: torch.tensor,
+        lattice_velocities: List[List[float]],
+        lattice_weights: List[float],
     ) -> None:
         """Initializer of the module.
 
@@ -26,9 +28,13 @@ class ShanChenForcingModule(nn.Module):
             force_vector (torch.tensor): The constant force vector applied to the whole domain. It has the dimension 3, where three is the number
                                          of spatial dimensions.
         """
-        super(ShanChenForcingModule, self).__init__()
+        super(GuoForcingModule, self).__init__()
         self.force_vector = force_vector
         self.register_buffer("force_vector_const", self.force_vector)
+        self.lattice_velocities = torch.tensor(lattice_velocities)
+        self.register_buffer("lattice_velocities_const", self.lattice_velocities)
+        self.lattice_weights = torch.tensor(lattice_weights)
+        self.register_buffer("lattice_weights_const", self.lattice_weights)
 
     def forward(self, volume_force_field: torch.Tensor, density: torch.Tensor, velocity: torch.Tensor, relaxation_omega: torch.Tensor) -> List[torch.Tensor]:
         """The forward passt calculation the equilibrium macroscopic velocities for the volume force.
@@ -41,4 +47,25 @@ class ShanChenForcingModule(nn.Module):
         """
         volume_force_field = volume_force_field + self.force_vector_const
         equilibrium_macroscopic_velocities = volume_force_field / (density * relaxation_omega)
-        return equilibrium_macroscopic_velocities, volume_force_field, None
+
+        equilibrium_macroscopic_velocities = 0.5 * volume_force_field / density
+        macroscopic_velocity = velocity + equilibrium_macroscopic_velocities
+
+        projected_discrete_velocities = torch.einsum(
+            "dQ,dNML->QNML",
+            self.lattice_velocities_const,
+            macroscopic_velocity,
+        )
+        unprojected_discrete_velocities = 9 * projected_discrete_velocities * self.lattice_velocities_const.unsqueeze(-1).unsqueeze(-1).unsqueeze(-1)
+
+        difference_velocities = 3 * (self.lattice_velocities_const.unsqueeze(-1).unsqueeze(-1).unsqueeze(-1) - macroscopic_velocity.unsqueeze(1))
+
+        weighted_discrete_velocities = self.lattice_weights_const.unsqueeze(-1).unsqueeze(-1).unsqueeze(-1) * (
+                difference_velocities + unprojected_discrete_velocities)
+
+        collision_source_term = torch.einsum(
+            "dQNML,dNML->QNML",
+            weighted_discrete_velocities,
+            volume_force_field
+        )
+        return equilibrium_macroscopic_velocities, volume_force_field, collision_source_term

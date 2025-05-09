@@ -26,7 +26,7 @@ class TRTCollisionModule(nn.Module):
         self.register_buffer("my_opposite_lattice_indices_const", self.my_opposite_lattice_indices)
         self.magic_parameter = magic_parameter
 
-    def forward(self, old_population: torch.Tensor, new_population: torch.Tensor, relaxation_omega: torch.Tensor) -> torch.Tensor:
+    def forward(self, old_population: torch.Tensor, new_population: torch.Tensor, relaxation_omega: torch.Tensor, collision_source_term: torch.Tensor) -> torch.Tensor:
         """The forward pass of the collision module. Gets as input the discretized velocity distribution of the start of the timestept,
         and the equilibrium distribution calculated based on it. It returns the post-collision distribution.
 
@@ -59,5 +59,10 @@ class TRTCollisionModule(nn.Module):
             - symmetric_omega * 0.5 * (symmetric_discrete_velocities - symmetric_equilibrium_discrete_velocities)
             - antisymmetric_omega * 0.5 * (antisymmetric_discrete_velocities - antisymmetric_equilibrium_discrete_velocities)
         )
+
+        if collision_source_term is not None:
+            discrete_velocities_post_collision += (
+                1.0 - 0.5 * symmetric_omega
+            ) * collision_source_term
 
         return discrete_velocities_post_collision

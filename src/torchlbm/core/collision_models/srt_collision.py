@@ -20,7 +20,7 @@ class SRTCollisionModule(nn.Module):
         """
         super(SRTCollisionModule, self).__init__()
 
-    def forward(self, old_population: torch.Tensor, new_population: torch.Tensor, relaxation_omega: torch.Tensor) -> torch.Tensor:
+    def forward(self, old_population: torch.Tensor, new_population: torch.Tensor, relaxation_omega: torch.Tensor, collision_source_term: torch.Tensor) -> torch.Tensor:
         """The forward pass of the collision modules. Gets as input the discretized velocity distribution of the start of the timestept,
         and the equilibrium distribution calculated based on it. It returns the post-collision distribution.
 
@@ -33,4 +33,8 @@ class SRTCollisionModule(nn.Module):
         discrete_velocities_post_collision = (
             1.0 - relaxation_omega
         ) * old_population + relaxation_omega * new_population
+        if collision_source_term is not None:
+            discrete_velocities_post_collision += (
+                1.0 - 0.5 * relaxation_omega
+            ) * collision_source_term
         return discrete_velocities_post_collision
