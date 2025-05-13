@@ -226,6 +226,11 @@ class TorchlbmState:
             initial_temp_relaxation_omega = torch.tensor(1.0 / (
                 3.0 * self.torchlbm_setup["Thermal"]["HeatConductivity"].value + 0.5
             ))
+            initial_vel_collision_source_term = initial_collision_source_term
+            if initial_vel_collision_source_term is not None:
+                initial_temp_collision_source_term = initial_collision_source_term
+            else:
+                initial_temp_collision_source_term = None
 
             self.node_data: ThermalNodeData = ThermalNodeData(
                 distributions=ThermalDistributions(
@@ -233,6 +238,8 @@ class TorchlbmState:
                     torch.empty([self.lattice.n_discrete_velocities, density_shape[0], density_shape[1], density_shape[2]]),
                     torch.empty([self.lattice.n_discrete_velocities, density_shape[0], density_shape[1], density_shape[2]]),
                     torch.empty([self.lattice.n_discrete_velocities, density_shape[0], density_shape[1], density_shape[2]]),
+                    initial_vel_collision_source_term,
+                    initial_temp_collision_source_term,
                 ),
                 moments=ThermalMoments(
                     initial_density,

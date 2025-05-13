@@ -1,6 +1,8 @@
 import typing
 import torch
 
+from typing import Optional
+
 
 class ThermalMoments:
     """The container for the storage-intensive data of the moments of the population
@@ -73,6 +75,8 @@ class ThermalDistributions:
         vel_new_population: torch.Tensor,
         temp_old_population: torch.Tensor,
         temp_new_population: torch.Tensor,
+        vel_collision_source_term: Optional[torch.Tensor] = None,
+        temp_collision_source_term: Optional[torch.Tensor] = None,
     ) -> None:
         """The constructor for the DistributionBlock. It initializes the populations, i.e. the discretized versions of the velocity distribution.
 
@@ -85,6 +89,8 @@ class ThermalDistributions:
         self.vel_new_population = vel_new_population
         self.temp_old_population = temp_old_population
         self.temp_new_population = temp_new_population
+        self.vel_collision_source_term = vel_collision_source_term
+        self.temp_collision_source_term = temp_collision_source_term
 
     def mps(self) -> None:
         """Moves all objects to the mps device."""
@@ -93,6 +99,10 @@ class ThermalDistributions:
         self.vel_new_population = self.vel_new_population.to(mps_device)
         self.temp_old_population = self.temp_old_population.to(mps_device)
         self.temp_new_population = self.temp_new_population.to(mps_device)
+        if self.vel_collision_source_term is not None:
+            self.vel_collision_source_term = self.vel_collision_source_term.to(mps_device)
+        if self.temp_collision_source_term is not None:
+            self.temp_collision_source_term = self.temp_collision_source_term.to(mps_device)
 
     def cuda(self) -> None:
         """Moves all objects to the cuda device."""
@@ -100,6 +110,10 @@ class ThermalDistributions:
         self.vel_new_population = self.vel_new_population.cuda()
         self.temp_old_population = self.temp_old_population.cuda()
         self.temp_new_population = self.temp_new_population.cuda()
+        if self.vel_collision_source_term is not None:
+            self.vel_collision_source_term = self.vel_collision_source_term.cuda()
+        if self.temp_collision_source_term is not None:
+            self.temp_collision_source_term = self.temp_collision_source_term.cuda()
 
     def cpu(self) -> None:
         """Moves all objects to the cpu device."""
@@ -107,6 +121,10 @@ class ThermalDistributions:
         self.vel_new_population = self.vel_new_population.cpu()
         self.temp_old_population = self.temp_old_population.cpu()
         self.temp_new_population = self.temp_new_population.cpu()
+        if self.vel_collision_source_term is not None:
+            self.vel_collision_source_term = self.vel_collision_source_term.cpu()
+        if self.temp_collision_source_term is not None:
+            self.temp_collision_source_term = self.temp_collision_source_term.cpu()
 
 
 class ThermalNodeData:

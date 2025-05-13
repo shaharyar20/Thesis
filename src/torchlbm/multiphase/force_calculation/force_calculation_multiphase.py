@@ -30,7 +30,7 @@ class ForceCalculationMultiphaseModule(nn.Module):
             interaction_strength (float): The pre-factor multiplied with pseudopotential of the nearest neighbors.
         """
         super(ForceCalculationMultiphaseModule, self).__init__()
-        self.lattice_velocities = torch.tensor(lattice_velocities)
+        self.lattice_velocities = torch.tensor(lattice_velocities).clone().detach().int()
         self.register_buffer("lattice_velocities_const", self.lattice_velocities)
         self.lattice_weights = torch.tensor(lattice_weights)
         self.register_buffer("lattice_weights_const", self.lattice_weights)
@@ -53,9 +53,9 @@ class ForceCalculationMultiphaseModule(nn.Module):
         shanchen_force = torch.zeros_like(volume_force_field)
 
         for k in range(self.n_discrete_velocities):
-            shifted_i = int(self.lattice_velocities_const[0, k])
-            shifted_j = int(self.lattice_velocities_const[1, k])
-            shifted_k = int(self.lattice_velocities_const[2, k])
+            shifted_i = self.lattice_velocities_const[0, k]
+            shifted_j = self.lattice_velocities_const[1, k]
+            shifted_k = self.lattice_velocities_const[2, k]
             pseudopotential_shift = pseudopotential[
                 self.access_indices[0][1] + shifted_i : self.access_indices[0][2] + shifted_i,
                 self.access_indices[1][1] + shifted_j if self.dimension != 1 else 0 : self.access_indices[1][2] + shifted_j if self.dimension != 1 else 1,
