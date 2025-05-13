@@ -35,6 +35,18 @@ from contextlib import nullcontext
 from torch.profiler import profile, record_function, ProfilerActivity
 from torchlbm.utilities.profiling import trace_handler
 
+def log_tensor_devices(f):
+    def wrapped(*args, **kwargs):
+        for i, arg in enumerate(args):
+            if isinstance(arg, torch.Tensor):
+                print(f"[DEBUG] Arg {i}: {arg.shape}, {arg.device}")
+        for k, v in kwargs.items():
+            if isinstance(v, torch.Tensor):
+                print(f"[DEBUG] Kwarg '{k}': {v.shape}, {v.device}")
+        return f(*args, **kwargs)
+    return wrapped
+
+
 
 def timing(f):
     @wraps(f)
@@ -126,6 +138,9 @@ class LbmSimulation:
                 streaming_module=get_streaming_module(self.state),
                 macroscopic_module=get_macroscopic_quantity_calculation_module(self.state),
                 equilibrium_module=get_equilibrium_calculation_module(self.state),
+                pseudopotential_module=get_pseudopotential_module(self.state),
+                multiphase_forcing_module=get_multiphase_forcing_module(self.state),
+                is_multiphase_active=self.state.torchlbm_setup["Multiphase"]["Active"].value,
                 boundary_condition_modules=get_boundary_condition_modules(self.state),
                 thermal_boundary_condition_modules=get_thermal_boundary_condition_modules(self.state),
                 forcing_module=get_forcing_module(self.state),

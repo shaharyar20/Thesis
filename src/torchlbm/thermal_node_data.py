@@ -42,24 +42,36 @@ class ThermalMoments:
         self.density = self.density.to(mps_device)
         self.velocity = self.velocity.to(mps_device)
         self.temperature = self.temperature.to(mps_device)
-        self.forcing_velocity = self.forcing_velocity.to(mps_device)
-        self.volume_force_field = self.volume_force_field.to(mps_device)
+        forcing_velocity = self.forcing_velocity
+        if forcing_velocity is not None:
+            self.forcing_velocity = forcing_velocity.to(mps_device)
+        volume_force_field = self.volume_force_field
+        if volume_force_field is not None:
+            self.volume_force_field = volume_force_field.to(mps_device)
 
     def cuda(self) -> None:
         """Moves all objects to the cuda device."""
         self.density = self.density.cuda()
         self.velocity = self.velocity.cuda()
         self.temperature = self.temperature.cuda()
-        self.forcing_velocity = self.forcing_velocity.cuda()
-        self.volume_force_field = self.volume_force_field.cuda()
+        forcing_velocity = self.forcing_velocity
+        if forcing_velocity is not None:
+            self.forcing_velocity = forcing_velocity.cuda()
+        volume_force_field = self.volume_force_field
+        if volume_force_field is not None:
+            self.volume_force_field = volume_force_field.cuda()
 
     def cpu(self) -> None:
         """Moves all objects to the cpu device."""
         self.density = self.density.cpu()
         self.velocity = self.velocity.cpu()
         self.temperature = self.temperature.cpu()
-        self.forcing_velocity = self.forcing_velocity.cpu()
-        self.volume_force_field = self.volume_force_field.cpu()
+        forcing_velocity = self.forcing_velocity
+        if forcing_velocity is not None:
+            self.forcing_velocity = forcing_velocity.cpu()
+        volume_force_field = self.volume_force_field
+        if volume_force_field is not None:
+            self.volume_force_field = volume_force_field.cpu()
 
 
 class ThermalDistributions:
