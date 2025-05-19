@@ -4,6 +4,7 @@ from torchlbm.state import TorchlbmState
 from torchlbm.multiphase.pseudopotential.shan_chen_pseudopotential_calculation import ShanChenPseudopotentialCalculationModule
 from torchlbm.multiphase.pseudopotential.carnahan_starling_pseudopotential_calculation import CarnahanSterlingPseudopotentialCalculationModule
 from torchlbm.multiphase.force_calculation.force_calculation_multiphase import ForceCalculationMultiphaseModule
+from torchlbm.multiphase.phase_change.carnahan_starling_thermal_calculation import CarnahanSterlingThermalCalculationModule
 
 def get_pseudopotential_module(state: TorchlbmState) -> ShanChenPseudopotentialCalculationModule:
     """Factory function that returns the module to perform mutliphase simulations.
@@ -58,4 +59,19 @@ def get_multiphase_forcing_module(state: TorchlbmState) -> ForceCalculationMulti
         dimension=dimension,
         interaction_strength=interaction_strength,
         n_discrete_velocities=state.lattice.number_of_discrete_velocities(),
+    )
+
+def get_phase_change_module(state: TorchlbmState) -> CarnahanSterlingThermalCalculationModule:
+    """Factory function that returns the module to perform mutliphase simulations.
+
+    Args:
+        state (QlbmState): The state of the simulation that contains all relevant information about the simulations setup.
+
+    Returns:
+        ShanChenPseudopotentialMultiphaseModule: The class object that is returned by the factory function.
+    """
+
+    return CarnahanSterlingThermalCalculationModule(
+        Cv=1.0,
+        lattice_weights=state.lattice.lattice_weights(),
     )

@@ -25,7 +25,7 @@ from torchlbm.module_factory.forcing_module_factory import get_forcing_module
 from torchlbm.module_factory.equilibrium_calculation_module_factory import get_equilibrium_calculation_module
 from torchlbm.module_factory.non_newtonian_module_factory import get_non_newtonian_module
 from torchlbm.thermal.module_factory.thermal_boundary_condition_factory import get_thermal_boundary_condition_modules
-from torchlbm.multiphase.module_factory.multiphase_module_factory import get_pseudopotential_module, get_multiphase_forcing_module
+from torchlbm.multiphase.module_factory.multiphase_module_factory import get_pseudopotential_module, get_multiphase_forcing_module, get_phase_change_module
 
 from functools import wraps
 import time
@@ -140,6 +140,7 @@ class LbmSimulation:
                 equilibrium_module=get_equilibrium_calculation_module(self.state),
                 pseudopotential_module=get_pseudopotential_module(self.state),
                 multiphase_forcing_module=get_multiphase_forcing_module(self.state),
+                phase_change_module=get_phase_change_module(self.state),
                 is_multiphase_active=self.state.torchlbm_setup["Multiphase"]["Active"].value,
                 boundary_condition_modules=get_boundary_condition_modules(self.state),
                 thermal_boundary_condition_modules=get_thermal_boundary_condition_modules(self.state),

@@ -152,7 +152,7 @@ class OutputWriter:
                 frame = cv2.imread(str(self._image_lists[key][0]))
                 height, width, layers = frame.shape
 
-                video = cv2.VideoWriter(str(self._visualization_folder.joinpath(f"{key}.mov")), cv2.VideoWriter_fourcc("m", "p", "4", "v"), 15, (width, height))
+                video = cv2.VideoWriter(str(self._visualization_folder.joinpath(f"{key}.mov")), cv2.VideoWriter_fourcc("m", "p", "4", "v"), 2, (width, height))
 
                 for image in self._image_lists[key]:
                     video.write(cv2.imread(str(image)))

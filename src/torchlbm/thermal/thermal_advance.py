@@ -67,6 +67,7 @@ class ThermalAdvanceModule(nn.Module):
         thermal_boundary_condition_modules,
         pseudopotential_module,
         multiphase_forcing_module,
+        phase_change_module,
         is_multiphase_active,
         forcing_module,
         is_forcing_active,
@@ -98,6 +99,7 @@ class ThermalAdvanceModule(nn.Module):
         self.thermal_boundary_condition_modules = thermal_boundary_condition_modules
         self.pseudopotential_module = pseudopotential_module
         self.multiphase_forcing_module = multiphase_forcing_module
+        self.phase_change_module = phase_change_module
         self.is_multiphase_active: bool = is_multiphase_active
         self.forcing_module = forcing_module
         self.is_forcing_active: bool = is_forcing_active
@@ -120,11 +122,12 @@ class ThermalAdvanceModule(nn.Module):
             node_data.moments.volume_force_field = torch.zeros_like(node_data.moments.volume_force_field)
 
         if self.is_multiphase_active:
-            pseudopotential = self.pseudopotential_module(node_data.moments.density)
+            pseudopotential = self.pseudopotential_module(node_data.moments.density, node_data.moments.temperature)
             node_data.moments.volume_force_field = self.multiphase_forcing_module(pseudopotential, node_data.moments.volume_force_field)
+            node_data.distributions.temp_collision_source_term = self.phase_change_module(node_data.moments.density, node_data.moments.temperature, node_data.moments.velocity)
 
         if self.is_forcing_active:
-            node_data.moments.forcing_velocity, node_data.moments.volume_force_field, node_data.distributions.vel_collision_source_term = self.forcing_module(node_data.moments.volume_force_field, node_data.moments.density, node_data.moments.velocity, node_data.relaxation_omega)
+            node_data.moments.forcing_velocity, node_data.moments.volume_force_field, node_data.distributions.vel_collision_source_term = self.forcing_module(node_data.moments.volume_force_field, node_data.moments.density, node_data.moments.velocity, node_data.vel_relaxation_omega)
 
 
         node_data.distributions.vel_new_population = self.equilibrium_module(node_data.moments.density, node_data.moments.velocity, node_data.moments.forcing_velocity)
