@@ -5,6 +5,7 @@ from torchlbm.multiphase.pseudopotential.shan_chen_pseudopotential_calculation i
 from torchlbm.multiphase.pseudopotential.carnahan_starling_pseudopotential_calculation import CarnahanSterlingPseudopotentialCalculationModule
 from torchlbm.multiphase.force_calculation.force_calculation_multiphase import ForceCalculationMultiphaseModule
 from torchlbm.multiphase.phase_change.carnahan_starling_thermal_calculation import CarnahanSterlingThermalCalculationModule
+from torchlbm.multiphase.pseudopotential.peng_robinson_pseudopotential_calculation import PengRobinsonPseudopotentialCalculationModule
 
 def get_pseudopotential_module(state: TorchlbmState) -> ShanChenPseudopotentialCalculationModule:
     """Factory function that returns the module to perform mutliphase simulations.
@@ -24,6 +25,11 @@ def get_pseudopotential_module(state: TorchlbmState) -> ShanChenPseudopotentialC
     elif state.torchlbm_setup["Multiphase"]["EOS"].value == "CarnahanStarling":
         return CarnahanSterlingPseudopotentialCalculationModule(
             reduced_temperature=state.torchlbm_setup["Multiphase"]["CarnahanStarlingEOS"]["ReducedTemperature"].value,
+        )
+    
+    elif state.torchlbm_setup["Multiphase"]["EOS"].value == "PengRobinson":
+        return PengRobinsonPseudopotentialCalculationModule(
+            reduced_temperature=state.torchlbm_setup["Multiphase"]["PengRobinsonEOS"]["ReducedTemperature"].value,
         )
 
 
@@ -72,6 +78,6 @@ def get_phase_change_module(state: TorchlbmState) -> CarnahanSterlingThermalCalc
     """
 
     return CarnahanSterlingThermalCalculationModule(
-        Cv=1.0,
+        Cv=5.0,
         lattice_weights=state.lattice.lattice_weights(),
     )

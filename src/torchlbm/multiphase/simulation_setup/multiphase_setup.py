@@ -11,7 +11,7 @@ from pathlib import Path
 
 
 def EOS():
-    return ["ShanChen", "CarnahanStarling"]
+    return ["ShanChen", "CarnahanStarling", "PengRobinson"]
 
 
 class MultiphaseSetup(SetupSet):
@@ -36,6 +36,12 @@ class MultiphaseSetup(SetupSet):
             ),
             SetupSet(
                 "CarnahanStarlingEOS",
+                [
+                    SetupTag("ReducedTemperature", 0.9, False, FloatConverter(0.0, 1.0, False)),
+                ]
+            ),
+            SetupSet(
+                "PengRobinsonEOS",
                 [
                     SetupTag("ReducedTemperature", 0.9, False, FloatConverter(0.0, 1.0, False)),
                 ]
