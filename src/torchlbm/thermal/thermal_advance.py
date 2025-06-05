@@ -124,7 +124,9 @@ class ThermalAdvanceModule(nn.Module):
         if self.is_multiphase_active:
             pseudopotential = self.pseudopotential_module(node_data.moments.density, node_data.moments.temperature)
             node_data.moments.volume_force_field = self.multiphase_forcing_module(pseudopotential, node_data.moments.volume_force_field)
-            node_data.distributions.temp_collision_source_term = self.phase_change_module(node_data.moments.density, node_data.moments.temperature, node_data.moments.velocity)
+            # node_data.distributions.temp_collision_source_term = self.phase_change_module(node_data.moments.density, node_data.moments.temperature, node_data.moments.velocity) / (
+            #     1.0 - 0.5 * node_data.temp_relaxation_omega
+            # )
 
         if self.is_forcing_active:
             node_data.moments.forcing_velocity, node_data.moments.volume_force_field, node_data.distributions.vel_collision_source_term = self.forcing_module(node_data.moments.volume_force_field, node_data.moments.density, node_data.moments.velocity, node_data.vel_relaxation_omega)
@@ -132,6 +134,11 @@ class ThermalAdvanceModule(nn.Module):
 
         node_data.distributions.vel_new_population = self.equilibrium_module(node_data.moments.density, node_data.moments.velocity, node_data.moments.forcing_velocity)
         node_data.distributions.temp_new_population = self.equilibrium_module(node_data.moments.temperature, node_data.moments.velocity, node_data.moments.forcing_velocity)
+
+        if self.is_multiphase_active:
+            node_data.distributions.temp_collision_source_term = self.phase_change_module(
+                node_data.moments.density, node_data.moments.temperature, node_data.moments.velocity, node_data.distributions.vel_old_population, node_data.distributions.vel_new_population, node_data.vel_relaxation_omega, node_data.moments.volume_force_field
+            ) / (1.0 - 0.5 * node_data.temp_relaxation_omega)
 
         # if self.is_non_newtonian_active:
         #     node_data.relaxation_omega = self.non_newtonian_module(node_data.distributions.old_population, node_data.distributions.new_population, node_data.relaxation_omega, node_data.moments.density)

@@ -80,4 +80,5 @@ def get_phase_change_module(state: TorchlbmState) -> CarnahanSterlingThermalCalc
     return CarnahanSterlingThermalCalculationModule(
         Cv=5.0,
         lattice_weights=state.lattice.lattice_weights(),
+        lattice_velocities=state.lattice.lattice_velocities(),
     )
