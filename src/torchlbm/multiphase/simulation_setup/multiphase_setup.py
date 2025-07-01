@@ -26,6 +26,7 @@ class MultiphaseSetup(SetupSet):
 
         settings = [
             SetupTag("Active", False, False, BoolConverter()),
+            SetupTag("SolidDensity", 0.1, False, FloatConverter(0.0, None, False)),
             SetupTag("EOS", "CarnahanStarling", False, StringConverter(EOS(), False)),
             SetupSet(
                 "ShanChenEOS",

@@ -25,11 +25,13 @@ def get_pseudopotential_module(state: TorchlbmState) -> ShanChenPseudopotentialC
     elif state.torchlbm_setup["Multiphase"]["EOS"].value == "CarnahanStarling":
         return CarnahanSterlingPseudopotentialCalculationModule(
             reduced_temperature=state.torchlbm_setup["Multiphase"]["CarnahanStarlingEOS"]["ReducedTemperature"].value,
+            solid_density=state.torchlbm_setup["Multiphase"]["SolidDensity"].value,
         )
     
     elif state.torchlbm_setup["Multiphase"]["EOS"].value == "PengRobinson":
         return PengRobinsonPseudopotentialCalculationModule(
             reduced_temperature=state.torchlbm_setup["Multiphase"]["PengRobinsonEOS"]["ReducedTemperature"].value,
+            solid_density=state.torchlbm_setup["Multiphase"]["SolidDensity"].value,
         )
 
 

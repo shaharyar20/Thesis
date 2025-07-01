@@ -32,7 +32,7 @@ class PengRobinsonPseudopotentialCalculationModule(nn.Module):
         self.a = 3.0 / 49.0
         self.b = 2.0 / 21.0
 
-    def forward(self, density: torch.Tensor, temperature: Optional[torch.Tensor] = None) -> torch.Tensor:
+    def forward(self, density: torch.Tensor, bounce_back_mask: torch.Tensor, temperature: Optional[torch.Tensor] = None) -> torch.Tensor:
         """The main functionality of the module as the forward pass of the module.
         It performs the calculation of the pseudopotential forces.
 

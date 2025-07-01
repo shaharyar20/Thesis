@@ -89,7 +89,7 @@ def main():
     simulation_setup["Output"]["Active"].value = True
     # simulation_setup["Output"]["ModulusArtifactsActive"].value = True
     # simulation_setup["Output"]["PrintTimingInformation"].value = False
-    simulation_setup["Output"]["OutputTimeInterval"].value = 1.0
+    simulation_setup["Output"]["OutputTimeInterval"].value = 0.5
     simulation_setup["Output"]["Velocity"]["Active"].value = True
     simulation_setup["Output"]["Velocity"]["ValueBounds"].value = [0.0, 1.0]
     simulation_setup["Output"]["Velocity"]["UseValueBounds"].value = False
@@ -104,7 +104,7 @@ def main():
     simulation_setup["Output"]["Temperature"]["Types"].value = ["PyTorch", "Picture"]
 
     simulation_setup["Physics"]["MachNumber"].value = 0.05
-    simulation_setup["Physics"]["EndTime"].value = 20.0
+    simulation_setup["Physics"]["EndTime"].value = 12.0
     simulation_setup["Physics"]["CharacteristicVelocityPu"].value = 1.0
     simulation_setup["Physics"]["KinematicViscosityPu"].value = 0.04 # Make tau 1
     simulation_setup["Physics"]["Precision"].value = "Single"

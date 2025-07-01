@@ -55,7 +55,7 @@ def get_boundary_condition_modules(state: TorchlbmState) -> List:
         boundary_condition_modules.append(get_outlet_boundary_module(state))
 
     # Add bounce back boundary condition here later
-    if torch.sum(state.node_data.bounce_back_mask) > 0:
+    if torch.sum(state.node_data.bounce_back_mask == 1) > 0:
         boundary_condition_modules.append(get_bounce_back_boundary_module(state))
 
     if (

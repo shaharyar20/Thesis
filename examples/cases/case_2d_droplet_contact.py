@@ -27,7 +27,7 @@ class ShearLayerInitialCondition(TorchlbmInitialCondition):
         r0 = .15
         w = .035
         x1 = .5
-        y1 = .5
+        y1 = .35 
         a = (rhol + rhog)/2
         b = (rhol - rhog)/2
         density_physical = a - b*torch.tanh(2*(torch.sqrt((X - x1)**2 + (Y - y1)**2) - r0)/w)
@@ -37,12 +37,20 @@ class ShearLayerInitialCondition(TorchlbmInitialCondition):
     def get_bounce_back_mask(self, X, Y, Z):
         mask = torch.zeros_like(X).bool()
 
+        # x0 = 0.5
+        # y0 = 0.3
+        # r0 = 0.2
+        # mask = torch.where(torch.sqrt((X - x0) * (X - x0) + (Y - y0) * (Y - y0)) < r0, 1, mask)
+
+        # Ones where y < 0.1
+        # mask = torch.where(Y < 0.1, 1, mask)
+
         return mask
 
 
 def main():
 
-    simulation_setup = TorchlbmSetup("StaticDroplet")
+    simulation_setup = TorchlbmSetup("DropletContact")
     simulation_setup["Domain"]["Dimension"].value = "2D"
     simulation_setup["Domain"]["NodeSize"].value = 1.0
     simulation_setup["Domain"]["CellsPerNode"].value = 150
@@ -50,10 +58,24 @@ def main():
     simulation_setup["Domain"]["NodeRatio"].value = [1, 1, 1]
     simulation_setup["Domain"]["BoundaryConditions"]["East"]["Type"].value = "Periodic"
     simulation_setup["Domain"]["BoundaryConditions"]["West"]["Type"].value = "Periodic"
-    simulation_setup["Domain"]["BoundaryConditions"]["North"]["Type"].value = "Periodic"
-    simulation_setup["Domain"]["BoundaryConditions"]["South"]["Type"].value = "Periodic"
+    simulation_setup["Domain"]["BoundaryConditions"]["North"]["Type"].value = "Wall"
+    simulation_setup["Domain"]["BoundaryConditions"]["North"]["WallVelocity"].value = [0.0, 0.0, 0.0]
+    simulation_setup["Domain"]["BoundaryConditions"]["South"]["Type"].value = "Wall"
+    simulation_setup["Domain"]["BoundaryConditions"]["South"]["WallVelocity"].value = [0.0, 0.0, 0.0]
     simulation_setup["Domain"]["BoundaryConditions"]["Top"]["Type"].value = "Periodic"
     simulation_setup["Domain"]["BoundaryConditions"]["Bottom"]["Type"].value = "Periodic"
+
+    # simulation_setup["Domain"]["BoundaryConditions"]["East"]["Type"].value = "Wall"
+    # simulation_setup["Domain"]["BoundaryConditions"]["East"]["WallVelocity"].value = [0.0, 0.0, 0.0]
+    # simulation_setup["Domain"]["BoundaryConditions"]["West"]["Type"].value = "Wall"
+    # simulation_setup["Domain"]["BoundaryConditions"]["West"]["WallVelocity"].value = [0.0, 0.0, 0.0]
+    # simulation_setup["Domain"]["BoundaryConditions"]["North"]["Type"].value = "Wall"
+    # simulation_setup["Domain"]["BoundaryConditions"]["North"]["WallVelocity"].value = [0.0, 0.0, 0.0]
+    # simulation_setup["Domain"]["BoundaryConditions"]["South"]["Type"].value = "Wall"
+    # simulation_setup["Domain"]["BoundaryConditions"]["South"]["WallVelocity"].value = [0.0, 0.0, 0.0]
+    # simulation_setup["Domain"]["BoundaryConditions"]["Top"]["Type"].value = "Periodic"
+    # simulation_setup["Domain"]["BoundaryConditions"]["Bottom"]["Type"].value = "Periodic"
+
 
     # simulation_setup["InitialCondition"]["ReadInitialConditionFromYaml"].value = False
     # simulation_setup["InitialCondition"]["Density"].value = "1.0"
@@ -69,13 +91,15 @@ def main():
     simulation_setup["Output"]["Active"].value = True
     # simulation_setup["Output"]["ModulusArtifactsActive"].value = True
     # simulation_setup["Output"]["PrintTimingInformation"].value = False
-    simulation_setup["Output"]["OutputTimeInterval"].value = 1.0
+    simulation_setup["Output"]["OutputTimeInterval"].value = 0.05
     simulation_setup["Output"]["Velocity"]["Active"].value = True
     simulation_setup["Output"]["Velocity"]["ValueBounds"].value = [0.0, 1.0]
     simulation_setup["Output"]["Velocity"]["UseValueBounds"].value = False
     simulation_setup["Output"]["Velocity"]["Types"].value = ["PyTorch", "Picture"]
     simulation_setup["Output"]["Density"]["Active"].value = True
     simulation_setup["Output"]["Density"]["Types"].value = ["PyTorch", "Picture"]
+    simulation_setup["Output"]["Density"]["ValueBounds"].value = [0.038, 0.265]
+    simulation_setup["Output"]["Density"]["UseValueBounds"].value = True
     # simulation_setup["Output"]["BounceBackMask"]["Active"].value = True
     # simulation_setup["Output"]["BounceBackMask"]["Types"].value = ["PyTorch", "Picture"]
     # simulation_setup["Output"]["KinematicViscosity"]["Active"].value = True
@@ -84,7 +108,7 @@ def main():
     simulation_setup["Physics"]["MachNumber"].value = 0.05
     simulation_setup["Physics"]["EndTime"].value = 2.0
     simulation_setup["Physics"]["CharacteristicVelocityPu"].value = 1.0
-    simulation_setup["Physics"]["KinematicViscosityPu"].value = 0.01 # Make tau 1
+    simulation_setup["Physics"]["KinematicViscosityPu"].value = 0.03 # Make tau 1
     simulation_setup["Physics"]["Precision"].value = "Single"
     simulation_setup["Physics"]["VolumeForces"]["Active"].value = True
     simulation_setup["Physics"]["VolumeForces"]["Type"].value = "Guo"
@@ -93,6 +117,7 @@ def main():
     simulation_setup["Multiphase"]["Active"].value = True
     simulation_setup["Multiphase"]["EOS"].value = "CarnahanStarling"
     simulation_setup["Multiphase"]["CarnahanStarlingEOS"]["ReducedTemperature"].value = 0.85
+    simulation_setup["Multiphase"]["SolidDensity"].value = 0.07
 
 
     # simulation_setup["Physics"]["NonNewtonian"]["Active"].value = False
@@ -105,7 +130,7 @@ def main():
     # simulation_setup["Algorithm"]["Operators"]["EquilibriumCalculation"]["Type"].value = "Classical"
     # simulation_setup["Algorithm"]["Operators"]["EquilibriumCalculation"]["ModelPath"].value = "distribution_learning/models/eq_model.pth"
     simulation_setup["Algorithm"]["Operators"]["Collision"]["Type"].value = "SRT"
-    simulation_setup["Algorithm"]["Operators"]["Collision"]["MRT"]["FreeParameters"].value = [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+    # simulation_setup["Algorithm"]["Operators"]["Collision"]["MRT"]["FreeParameters"].value = [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
     # simulation_setup["Algorithm"]["Operators"]["Collision"]["ModelPath"].value = "distribution_learning/models/eq_model.pth"
 
     simulation_setup["Lattice"]["NSE"]["1D"].value = "D1Q2"

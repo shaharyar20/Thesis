@@ -37,6 +37,6 @@ class BounceBackBoundaryUpdate(nn.Module):
         """
         discrete_velocities = old_population.clone()
         if bounce_back_mask is not None:
-            discrete_velocities = torch.where(bounce_back_mask > 0, discrete_velocities[self.opposite_lattice_indices], discrete_velocities)
+            discrete_velocities = torch.where(bounce_back_mask == 1, discrete_velocities[self.opposite_lattice_indices], discrete_velocities)
         # node_data.distributions.old_population = discrete_velocities
         return discrete_velocities

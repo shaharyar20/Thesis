@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 import os
 import cv2
+import imageio
 
 import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
@@ -149,15 +150,31 @@ class OutputWriter:
     def generate_videos(self, state: TorchlbmState):
         if state.torchlbm_setup["Output"]["Velocity"]["Active"].value:
             for key, value in self._image_lists.items():
-                frame = cv2.imread(str(self._image_lists[key][0]))
-                height, width, layers = frame.shape
+                images = [cv2.imread(str(image)) for image in self._image_lists[key]]  
+                images = [cv2.cvtColor(img, cv2.COLOR_BGR2RGB) for img in images]
+                images = np.ascontiguousarray(images)
+     
+                output_path = self._visualization_folder.joinpath(f"{key}.gif")
+                imageio.mimsave(output_path, images, fps=5) 
 
-                video = cv2.VideoWriter(str(self._visualization_folder.joinpath(f"{key}.mov")), cv2.VideoWriter_fourcc("m", "p", "4", "v"), 2, (width, height))
+                gif_filename = self._visualization_folder.joinpath(f"{key}.gif")
+                mp4_filename = self._visualization_folder.joinpath(f"{key}.mp4")
 
-                for image in self._image_lists[key]:
-                    video.write(cv2.imread(str(image)))
-                cv2.destroyAllWindows()
-                video.release()
+                with imageio.get_writer(mp4_filename, format='mp4', mode='I', fps=3, ffmpeg_params=['-loglevel', 'error']) as writer:
+                    for frame in imageio.get_reader(gif_filename):
+                        writer.append_data(frame)
+
+                os.remove(gif_filename)
+
+                # frame = cv2.imread(str(self._image_lists[key][0]))
+                # height, width, layers = frame.shape
+
+                # video = cv2.VideoWriter(str(self._visualization_folder.joinpath(f"{key}.mov")), cv2.VideoWriter_fourcc("m", "p", "4", "v"), 2, (width, height))
+
+                # for image in self._image_lists[key]:
+                #     video.write(cv2.imread(str(image)))
+                # cv2.destroyAllWindows()
+                # video.release()
                 # import moviepy.video.io.ImageSequenceClip
                 # movie_clip = moviepy.video.io.ImageSequenceClip.ImageSequenceClip(value, 15)
                 # movie_clip.write_videofile(str(self._visualization_folder.joinpath(f"{key}.mov")))
