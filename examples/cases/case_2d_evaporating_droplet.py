@@ -24,8 +24,8 @@ class ShearLayerInitialCondition(TorchlbmInitialCondition):
     def get_initial_density(self, X, Y, Z):
         rhol = 0.278
         rhog = 0.0278
-        r0 = .125
-        w = .025
+        r0 = .15
+        w = .035
         x1 = .5
         y1 = .5
         a = (rhol + rhog)/2

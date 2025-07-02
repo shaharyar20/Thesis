@@ -25,6 +25,15 @@ def get_boundary_condition_modules(state: TorchlbmState) -> List:
 """
     boundary_condition_modules = nn.ModuleList()
     if (
+        state.torchlbm_setup["Domain"]["BoundaryConditions"]["East"]["Type"].value == "Periodic"
+        or state.torchlbm_setup["Domain"]["BoundaryConditions"]["West"]["Type"].value == "Periodic"
+        or state.torchlbm_setup["Domain"]["BoundaryConditions"]["North"]["Type"].value == "Periodic"
+        or state.torchlbm_setup["Domain"]["BoundaryConditions"]["South"]["Type"].value == "Periodic"
+        or state.torchlbm_setup["Domain"]["BoundaryConditions"]["Top"]["Type"].value == "Periodic"
+        or state.torchlbm_setup["Domain"]["BoundaryConditions"]["Bottom"]["Type"].value == "Periodic"
+    ):
+        boundary_condition_modules.append(get_periodic_boundary_module(state))
+    if (
         state.torchlbm_setup["Domain"]["BoundaryConditions"]["East"]["Type"].value == "Wall"
         or state.torchlbm_setup["Domain"]["BoundaryConditions"]["West"]["Type"].value == "Wall"
         or state.torchlbm_setup["Domain"]["BoundaryConditions"]["North"]["Type"].value == "Wall"
@@ -68,15 +77,15 @@ def get_boundary_condition_modules(state: TorchlbmState) -> List:
     ):
         boundary_condition_modules.append(get_zero_gradient_boundary_module(state))
 
-    if (
-        state.torchlbm_setup["Domain"]["BoundaryConditions"]["East"]["Type"].value == "Periodic"
-        or state.torchlbm_setup["Domain"]["BoundaryConditions"]["West"]["Type"].value == "Periodic"
-        or state.torchlbm_setup["Domain"]["BoundaryConditions"]["North"]["Type"].value == "Periodic"
-        or state.torchlbm_setup["Domain"]["BoundaryConditions"]["South"]["Type"].value == "Periodic"
-        or state.torchlbm_setup["Domain"]["BoundaryConditions"]["Top"]["Type"].value == "Periodic"
-        or state.torchlbm_setup["Domain"]["BoundaryConditions"]["Bottom"]["Type"].value == "Periodic"
-    ):
-        boundary_condition_modules.append(get_periodic_boundary_module(state))
+    # if (
+    #     state.torchlbm_setup["Domain"]["BoundaryConditions"]["East"]["Type"].value == "Periodic"
+    #     or state.torchlbm_setup["Domain"]["BoundaryConditions"]["West"]["Type"].value == "Periodic"
+    #     or state.torchlbm_setup["Domain"]["BoundaryConditions"]["North"]["Type"].value == "Periodic"
+    #     or state.torchlbm_setup["Domain"]["BoundaryConditions"]["South"]["Type"].value == "Periodic"
+    #     or state.torchlbm_setup["Domain"]["BoundaryConditions"]["Top"]["Type"].value == "Periodic"
+    #     or state.torchlbm_setup["Domain"]["BoundaryConditions"]["Bottom"]["Type"].value == "Periodic"
+    # ):
+    #     boundary_condition_modules.append(get_periodic_boundary_module(state))
 
     if (
         state.torchlbm_setup["Domain"]["BoundaryConditions"]["East"]["Type"].value == "TimeSpaceDependentWall"

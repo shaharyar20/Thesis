@@ -206,7 +206,7 @@ class TorchlbmState:
             initial_bounce_back_mask[start[0] : end[0], start[1] : end[1], start[2] : end[2]] = bounce_back_mask_from_pt
         else:
             initial_bounce_back_mask = initial_condition.get_bounce_back_mask(meshgrid_for_node[0], meshgrid_for_node[1], meshgrid_for_node[2])
-        # print(torch.sum(initial_bounce_back_mask == 1), torch.sum(initial_bounce_back_mask == 2))
+
         initial_bounce_back_mask = initial_bounce_back_mask.to(torch.int8)
         internal_cells: List[int] = self.torchlbm_setup["Domain"]["InternalCells"].value
         access_indices: List[List[int]] = [
@@ -262,8 +262,6 @@ class TorchlbmState:
                 access_indices[1][2] if dimension != 1 else 1,
                 access_indices[2][0] if dimension == 3 else 0:
                 access_indices[2][1] if dimension == 3 else 1, ] = 2
-            
-        # print(torch.sum(initial_bounce_back_mask == 1), torch.sum(initial_bounce_back_mask == 2))
 
         density_shape = initial_density.shape
 

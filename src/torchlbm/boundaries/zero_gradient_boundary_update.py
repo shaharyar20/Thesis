@@ -140,6 +140,7 @@ class ZeroGradientBoundaryUpdate(nn.Module):
                 self.access_indices[2][1] if self.dimension == 3 else 0:
                 self.access_indices[2][2] if self.dimension == 3 else 1,
             ] = - f_slice + 2.0 * weight * density_slice * (1.0 + 0.5 * 9.0 * wall_velocity_projection**2 - 0.5 * 3.0 * square_velocity_projection)
+        # population[:, -self.num_halo_cells :, :, :] = population[:, -2 * self.num_halo_cells : -self.num_halo_cells, :, :]
         return population
 
     def update_west_zero_gradient(self, population: torch.Tensor, velocity: torch.Tensor, density: torch.Tensor) -> torch.Tensor:
@@ -197,6 +198,7 @@ class ZeroGradientBoundaryUpdate(nn.Module):
                 self.access_indices[2][1] if self.dimension == 3 else 0:
                 self.access_indices[2][2] if self.dimension == 3 else 1,
             ] = - f_slice + 2.0 * weight * density_slice * (1.0 + 0.5 * 9.0 * wall_velocity_projection**2 - 0.5 * 3.0 * square_velocity_projection)
+        # population[:, : self.num_halo_cells, :, :] = population[:, self.num_halo_cells : 2 * self.num_halo_cells, :, :]
         return population
 
     def update_north_zero_gradient(self, population: torch.Tensor, velocity: torch.Tensor, density: torch.Tensor) -> torch.Tensor:
@@ -254,6 +256,7 @@ class ZeroGradientBoundaryUpdate(nn.Module):
                 self.access_indices[2][1] if self.dimension == 3 else 0:
                 self.access_indices[2][2] if self.dimension == 3 else 1,
             ] = - f_slice + 2.0 * weight * density_slice * (1.0 + 0.5 * 9.0 * wall_velocity_projection**2 - 0.5 * 3.0 * square_velocity_projection)
+        # population[:, :, -self.num_halo_cells :, :] = population[:, :, -2 * self.num_halo_cells : -self.num_halo_cells, :]
         return population
 
     def update_south_zero_gradient(self, population: torch.Tensor, velocity: torch.Tensor, density: torch.Tensor) -> torch.Tensor:

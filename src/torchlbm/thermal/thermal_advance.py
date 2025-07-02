@@ -122,8 +122,8 @@ class ThermalAdvanceModule(nn.Module):
             node_data.moments.volume_force_field = torch.zeros_like(node_data.moments.volume_force_field)
 
         if self.is_multiphase_active:
-            pseudopotential = self.pseudopotential_module(node_data.moments.density, node_data.moments.temperature)
-            node_data.moments.volume_force_field = self.multiphase_forcing_module(pseudopotential, node_data.moments.volume_force_field)
+            pseudopotential = self.pseudopotential_module(node_data.moments.density, node_data.bounce_back_mask, node_data.moments.temperature)
+            node_data.moments.volume_force_field = self.multiphase_forcing_module(pseudopotential, node_data.moments.volume_force_field, node_data.moments.density)
             # node_data.distributions.temp_collision_source_term = self.phase_change_module(node_data.moments.density, node_data.moments.temperature, node_data.moments.velocity) / (
             #     1.0 - 0.5 * node_data.temp_relaxation_omega
             # )

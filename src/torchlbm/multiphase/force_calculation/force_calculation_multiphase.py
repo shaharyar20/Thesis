@@ -19,6 +19,8 @@ class ForceCalculationMultiphaseModule(nn.Module):
         dimension: int,
         interaction_strength: float,
         n_discrete_velocities: int,
+        is_gravity_active: bool,
+        gravity_value: float,
     ) -> None:
         """Constructor of the module. The constructor is usually called from a factory function.
 
@@ -38,8 +40,11 @@ class ForceCalculationMultiphaseModule(nn.Module):
         self.G = interaction_strength
         self.dimension = dimension
         self.n_discrete_velocities = n_discrete_velocities
+        self.is_gravity_active = is_gravity_active
+        self.gravity_vector = torch.tensor([0.0, -gravity_value, 0.0]).unsqueeze(-1).unsqueeze(-1).unsqueeze(-1) 
+        self.register_buffer("gravity_vector_const", self.gravity_vector)
 
-    def forward(self, pseudopotential: torch.Tensor, volume_force_field: torch.Tensor) -> torch.Tensor:
+    def forward(self, pseudopotential: torch.Tensor, volume_force_field: torch.Tensor, density: torch.Tensor) -> torch.Tensor:
         """The main functionality of the module as the forward pass of the module.
         It performs the calculation of the pseudopotential forces.
 
@@ -73,5 +78,8 @@ class ForceCalculationMultiphaseModule(nn.Module):
 
         shanchen_force *= -pseudopotential * self.G
         volume_force_field += shanchen_force
+
+        if self.is_gravity_active:
+            volume_force_field += (density - density.mean()) * self.gravity_vector_const
 
         return volume_force_field

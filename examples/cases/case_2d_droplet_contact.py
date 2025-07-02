@@ -24,10 +24,10 @@ class ShearLayerInitialCondition(TorchlbmInitialCondition):
     def get_initial_density(self, X, Y, Z):
         rhol = 0.278
         rhog = 0.0278
-        r0 = .15
-        w = .035
-        x1 = .5
-        y1 = .35 
+        r0 = .08
+        w = .015
+        x1 = 1.0
+        y1 = .45 
         a = (rhol + rhog)/2
         b = (rhol - rhog)/2
         density_physical = a - b*torch.tanh(2*(torch.sqrt((X - x1)**2 + (Y - y1)**2) - r0)/w)
@@ -53,12 +53,13 @@ def main():
     simulation_setup = TorchlbmSetup("DropletContact")
     simulation_setup["Domain"]["Dimension"].value = "2D"
     simulation_setup["Domain"]["NodeSize"].value = 1.0
-    simulation_setup["Domain"]["CellsPerNode"].value = 150
+    simulation_setup["Domain"]["CellsPerNode"].value = 200
     simulation_setup["Domain"]["NumHaloCells"].value = 1
-    simulation_setup["Domain"]["NodeRatio"].value = [1, 1, 1]
+    simulation_setup["Domain"]["NodeRatio"].value = [2, 1, 1]
     simulation_setup["Domain"]["BoundaryConditions"]["East"]["Type"].value = "Periodic"
     simulation_setup["Domain"]["BoundaryConditions"]["West"]["Type"].value = "Periodic"
     simulation_setup["Domain"]["BoundaryConditions"]["North"]["Type"].value = "Wall"
+    # simulation_setup["Domain"]["BoundaryConditions"]["North"]["OutletDensity"].value = 0.0278
     simulation_setup["Domain"]["BoundaryConditions"]["North"]["WallVelocity"].value = [0.0, 0.0, 0.0]
     simulation_setup["Domain"]["BoundaryConditions"]["South"]["Type"].value = "Wall"
     simulation_setup["Domain"]["BoundaryConditions"]["South"]["WallVelocity"].value = [0.0, 0.0, 0.0]
@@ -98,17 +99,17 @@ def main():
     simulation_setup["Output"]["Velocity"]["Types"].value = ["PyTorch", "Picture"]
     simulation_setup["Output"]["Density"]["Active"].value = True
     simulation_setup["Output"]["Density"]["Types"].value = ["PyTorch", "Picture"]
-    simulation_setup["Output"]["Density"]["ValueBounds"].value = [0.038, 0.265]
-    simulation_setup["Output"]["Density"]["UseValueBounds"].value = True
+    # simulation_setup["Output"]["Density"]["ValueBounds"].value = [0.038, 0.265]
+    # simulation_setup["Output"]["Density"]["UseValueBounds"].value = True
     # simulation_setup["Output"]["BounceBackMask"]["Active"].value = True
     # simulation_setup["Output"]["BounceBackMask"]["Types"].value = ["PyTorch", "Picture"]
     # simulation_setup["Output"]["KinematicViscosity"]["Active"].value = True
     # simulation_setup["Output"]["KinematicViscosity"]["Types"].value = ["PyTorch", "Picture"]
 
     simulation_setup["Physics"]["MachNumber"].value = 0.05
-    simulation_setup["Physics"]["EndTime"].value = 2.0
+    simulation_setup["Physics"]["EndTime"].value = 2.5
     simulation_setup["Physics"]["CharacteristicVelocityPu"].value = 1.0
-    simulation_setup["Physics"]["KinematicViscosityPu"].value = 0.03 # Make tau 1
+    simulation_setup["Physics"]["KinematicViscosityPu"].value = 0.04 # Make tau 1
     simulation_setup["Physics"]["Precision"].value = "Single"
     simulation_setup["Physics"]["VolumeForces"]["Active"].value = True
     simulation_setup["Physics"]["VolumeForces"]["Type"].value = "Guo"
@@ -117,7 +118,9 @@ def main():
     simulation_setup["Multiphase"]["Active"].value = True
     simulation_setup["Multiphase"]["EOS"].value = "CarnahanStarling"
     simulation_setup["Multiphase"]["CarnahanStarlingEOS"]["ReducedTemperature"].value = 0.85
-    simulation_setup["Multiphase"]["SolidDensity"].value = 0.07
+    simulation_setup["Multiphase"]["SolidDensity"].value = 0.08
+    simulation_setup["Multiphase"]["Gravity"]["Active"].value = True
+    simulation_setup["Multiphase"]["Gravity"]["Value"].value = 1
 
 
     # simulation_setup["Physics"]["NonNewtonian"]["Active"].value = False

@@ -157,8 +157,7 @@ class AdvanceModule(nn.Module):
 
         if self.is_multiphase_active:
             pseudopotential = self.pseudopotential_module(node_data.moments.density, node_data.bounce_back_mask)
-            node_data.moments.volume_force_field = self.multiphase_forcing_module(pseudopotential, node_data.moments.volume_force_field)
-            # node_data.moments.volume_force_field += (node_data.moments.density - node_data.moments.density.mean()) * torch.tensor([0.0, -5e-6, 0.0], device=node_data.moments.density.device, dtype=node_data.moments.density.dtype).unsqueeze(-1).unsqueeze(-1).unsqueeze(-1)
+            node_data.moments.volume_force_field = self.multiphase_forcing_module(pseudopotential, node_data.moments.volume_force_field, node_data.moments.density)
 
         if self.is_forcing_active:
             node_data.moments.forcing_velocity, node_data.moments.volume_force_field, node_data.distributions.collision_source_term = self.forcing_module(node_data.moments.volume_force_field, node_data.moments.density, node_data.moments.velocity, node_data.relaxation_omega)
@@ -183,7 +182,7 @@ class AdvanceModule(nn.Module):
             node_data.distributions.old_population = module(node_data.distributions.old_population, node_data.moments.density, node_data.moments.velocity, node_data.bounce_back_mask)
 
         node_data.moments.density, node_data.moments.velocity = self.macroscopic_module(node_data.distributions.old_population)
-        # print(torch.sum(node_data.moments.density[1:-1, 1:-1, :] > 0.08))
+        # print(torch.sum(node_data.moments.density[1:-1, 1:-1, :] > 0.25))
         # print_memory_usage(node_data)
 
         return node_data

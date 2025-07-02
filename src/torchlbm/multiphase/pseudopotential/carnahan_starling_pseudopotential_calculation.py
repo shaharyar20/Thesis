@@ -16,6 +16,7 @@ class CarnahanSterlingPseudopotentialCalculationModule(nn.Module):
         self,
         reduced_temperature: float,
         solid_density: float,
+        solid_temperature = None,
     ) -> None:
         """Constructor of the module. The constructor is usually called from a factory function.
 
@@ -30,6 +31,10 @@ class CarnahanSterlingPseudopotentialCalculationModule(nn.Module):
         self.G = -1.0
         self.reduced_temperature = reduced_temperature
         self.solid_density = solid_density
+        if solid_temperature is None:
+            self.solid_temperature = self.reduced_temperature*0.09433
+        else:
+            self.solid_temperature = solid_temperature
 
     def forward(self, density: torch.Tensor, bounce_back_mask: torch.Tensor, temperature: Optional[torch.Tensor] = None) -> torch.Tensor:
         """The main functionality of the module as the forward pass of the module.
@@ -49,13 +54,13 @@ class CarnahanSterlingPseudopotentialCalculationModule(nn.Module):
         eos_nonideal = density*(temperature*(1 + (4*density - 2*density_squared)/(torch.ones_like(density) - density)**3) - density - 1.0/3.0)
         pseudopotential = torch.sqrt(torch.abs(6*eos_nonideal/self.G))
 
-        # if bounce_back_mask is not None:
-        #     eos_nonideal_solid = self.solid_density*(temperature*(1 + (4*self.solid_density - 2*self.solid_density*self.solid_density)/(1 - self.solid_density)**3) - self.solid_density - 1.0/3.0)
-        #     pseudopotential_solid = math.sqrt(abs(6 * eos_nonideal_solid / self.G))
-        #     pseudopotential = torch.where(
-        #         bounce_back_mask > 0,
-        #         pseudopotential_solid,
-        #         pseudopotential,
-        #     )
+        if bounce_back_mask is not None:
+            eos_nonideal_solid = self.solid_density*(self.solid_temperature*(1 + (4*self.solid_density - 2*self.solid_density*self.solid_density)/(1 - self.solid_density)**3) - self.solid_density - 1.0/3.0)
+            pseudopotential_solid = math.sqrt(abs(6 * eos_nonideal_solid / self.G))
+            pseudopotential = torch.where(
+                bounce_back_mask > 0,
+                pseudopotential_solid,
+                pseudopotential,
+            )
 
         return pseudopotential

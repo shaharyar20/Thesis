@@ -26,6 +26,7 @@ def get_pseudopotential_module(state: TorchlbmState) -> ShanChenPseudopotentialC
         return CarnahanSterlingPseudopotentialCalculationModule(
             reduced_temperature=state.torchlbm_setup["Multiphase"]["CarnahanStarlingEOS"]["ReducedTemperature"].value,
             solid_density=state.torchlbm_setup["Multiphase"]["SolidDensity"].value,
+            solid_temperature=state.torchlbm_setup["Multiphase"]["SolidTemperature"].value if state.torchlbm_setup["Thermal"]["Active"].value == True else None,
         )
     
     elif state.torchlbm_setup["Multiphase"]["EOS"].value == "PengRobinson":
@@ -60,6 +61,10 @@ def get_multiphase_forcing_module(state: TorchlbmState) -> ForceCalculationMulti
     else:
         interaction_strength = -1.0
 
+    gravity_value = state.unit_converter.convert_acceleration_to_lattice_units(
+        state.torchlbm_setup["Multiphase"]["Gravity"]["Active"].value
+    )
+
     return ForceCalculationMultiphaseModule(
         lattice_velocities=state.lattice.lattice_velocities(),
         lattice_weights=state.lattice.lattice_weights(),
@@ -67,6 +72,8 @@ def get_multiphase_forcing_module(state: TorchlbmState) -> ForceCalculationMulti
         dimension=dimension,
         interaction_strength=interaction_strength,
         n_discrete_velocities=state.lattice.number_of_discrete_velocities(),
+        is_gravity_active=state.torchlbm_setup["Multiphase"]["Gravity"]["Active"].value,
+        gravity_value=gravity_value,
     )
 
 def get_phase_change_module(state: TorchlbmState) -> CarnahanSterlingThermalCalculationModule:

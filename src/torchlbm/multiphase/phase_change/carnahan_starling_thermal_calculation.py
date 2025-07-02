@@ -52,16 +52,16 @@ class CarnahanSterlingThermalCalculationModule(nn.Module):
         density_squared = density**2
         dp_dT = density*((1 + (4*density - 2*density_squared)/(torch.ones_like(density) - density)**3) - density)
 
-        vx, vy, vz = macroscopic_velocity[0], macroscopic_velocity[1], macroscopic_velocity[2]
+        # vx, vy, vz = macroscopic_velocity[0], macroscopic_velocity[1], macroscopic_velocity[2]
 
         # Use central differences for interior, forward/backward for boundaries
-        dvx_dx = torch.zeros_like(vx)
-        dvy_dy = torch.zeros_like(vy)
-        dvz_dz = torch.zeros_like(vz)
+        # dvx_dx = torch.zeros_like(vx)
+        # dvy_dy = torch.zeros_like(vy)
+        # dvz_dz = torch.zeros_like(vz)
 
         # print(dvx_dx[2:-2, :, :].shape, vx[3:-1, :, :].shape, vx[1:-3, :, :].shape)
-        dvx_dx[2:-2, :, :] = (vx[3:-1, :, :] - vx[1:-3, :, :]) / 2
-        dvy_dy[:, 2:-2, :] = (vy[:, 3:-1, :] - vy[:, 1:-3, :]) / 2
+        # dvx_dx[2:-2, :, :] = (vx[3:-1, :, :] - vx[1:-3, :, :]) / 2
+        # dvy_dy[:, 2:-2, :] = (vy[:, 3:-1, :] - vy[:, 1:-3, :]) / 2
         # dvz_dz[:, :, 2:-2] = (vz[:, :, 3:] - vz[:, :, :-3]) / 2
 
         # dvx_dx[1:-1, :, :] = (vx[2:, :, :] - vx[:-2, :, :]) / 2
@@ -71,7 +71,7 @@ class CarnahanSterlingThermalCalculationModule(nn.Module):
         # Optionally use forward/backward differences at boundaries (here: zeros)
         # You can modify boundaries as needed (e.g., forward/backward diff)
 
-        divergence = dvx_dx + dvy_dy + dvz_dz
+        # divergence = dvx_dx + dvy_dy + dvz_dz
         # print(torch.max(divergence))
         # print(torch.min(divergence))   
         # print(torch.max(dvx_dx), torch.min(dvx_dx))
