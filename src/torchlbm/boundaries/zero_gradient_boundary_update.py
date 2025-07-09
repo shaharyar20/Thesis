@@ -216,47 +216,47 @@ class ZeroGradientBoundaryUpdate(nn.Module):
                           of the computational domain.
                           L is the number of discrete velocities of the underlying velocity set.
         """
-        density_slice = density[
-            self.access_indices[0][1]:
-            self.access_indices[0][2],
-            self.access_indices[1][2] - self.num_halo_cells if self.dimension != 1 else 0:
-            self.access_indices[1][3] - self.num_halo_cells if self.dimension != 1 else 1,
-            self.access_indices[2][1] if self.dimension == 3 else 0:
-            self.access_indices[2][2] if self.dimension == 3 else 1,
-        ]
-        velocity_slice = velocity[
-            :,
-            self.access_indices[0][1]:
-            self.access_indices[0][2],
-            self.access_indices[1][2] - self.num_halo_cells if self.dimension != 1 else 0:
-            self.access_indices[1][3] - self.num_halo_cells if self.dimension != 1 else 1,
-            self.access_indices[2][1] if self.dimension == 3 else 0:
-            self.access_indices[2][2] if self.dimension == 3 else 1,
-        ]
-        square_velocity_projection = torch.einsum("dNML,dNML->NML", velocity_slice, velocity_slice)
-        for north_index in self.north_velocities:
-            opposite_index = self.opposite_lattice_indices[north_index]
-            f_slice = population[
-                north_index,
-                self.access_indices[0][1] + self.lattice_velocity_integers[0][north_index]:
-                self.access_indices[0][2] + self.lattice_velocity_integers[0][north_index],
-                self.access_indices[1][2] - self.num_halo_cells + self.lattice_velocity_integers[1][north_index] if self.dimension != 1 else 0:
-                self.access_indices[1][3] - self.num_halo_cells + self.lattice_velocity_integers[1][north_index] if self.dimension != 1 else 1,
-                self.access_indices[2][1] + self.lattice_velocity_integers[2][north_index] if self.dimension == 3 else 0:
-                self.access_indices[2][2] + self.lattice_velocity_integers[2][north_index] if self.dimension == 3 else 1,
-            ]
-            wall_velocity_projection = torch.einsum("dNML,d->NML", velocity_slice, self.lattice_velocity_const[:, north_index])
-            weight = self.lattice_weights[north_index]
-            population[
-                opposite_index,
-                self.access_indices[0][1]:
-                self.access_indices[0][2],
-                self.access_indices[1][2] - self.num_halo_cells if self.dimension != 1 else 0:
-                self.access_indices[1][3] - self.num_halo_cells if self.dimension != 1 else 1,
-                self.access_indices[2][1] if self.dimension == 3 else 0:
-                self.access_indices[2][2] if self.dimension == 3 else 1,
-            ] = - f_slice + 2.0 * weight * density_slice * (1.0 + 0.5 * 9.0 * wall_velocity_projection**2 - 0.5 * 3.0 * square_velocity_projection)
-        # population[:, :, -self.num_halo_cells :, :] = population[:, :, -2 * self.num_halo_cells : -self.num_halo_cells, :]
+        # density_slice = density[
+        #     self.access_indices[0][1]:
+        #     self.access_indices[0][2],
+        #     self.access_indices[1][2] - self.num_halo_cells if self.dimension != 1 else 0:
+        #     self.access_indices[1][3] - self.num_halo_cells if self.dimension != 1 else 1,
+        #     self.access_indices[2][1] if self.dimension == 3 else 0:
+        #     self.access_indices[2][2] if self.dimension == 3 else 1,
+        # ]
+        # velocity_slice = velocity[
+        #     :,
+        #     self.access_indices[0][1]:
+        #     self.access_indices[0][2],
+        #     self.access_indices[1][2] - self.num_halo_cells if self.dimension != 1 else 0:
+        #     self.access_indices[1][3] - self.num_halo_cells if self.dimension != 1 else 1,
+        #     self.access_indices[2][1] if self.dimension == 3 else 0:
+        #     self.access_indices[2][2] if self.dimension == 3 else 1,
+        # ]
+        # square_velocity_projection = torch.einsum("dNML,dNML->NML", velocity_slice, velocity_slice)
+        # for north_index in self.north_velocities:
+        #     opposite_index = self.opposite_lattice_indices[north_index]
+        #     f_slice = population[
+        #         north_index,
+        #         self.access_indices[0][1] + self.lattice_velocity_integers[0][north_index]:
+        #         self.access_indices[0][2] + self.lattice_velocity_integers[0][north_index],
+        #         self.access_indices[1][2] - self.num_halo_cells + self.lattice_velocity_integers[1][north_index] if self.dimension != 1 else 0:
+        #         self.access_indices[1][3] - self.num_halo_cells + self.lattice_velocity_integers[1][north_index] if self.dimension != 1 else 1,
+        #         self.access_indices[2][1] + self.lattice_velocity_integers[2][north_index] if self.dimension == 3 else 0:
+        #         self.access_indices[2][2] + self.lattice_velocity_integers[2][north_index] if self.dimension == 3 else 1,
+        #     ]
+        #     wall_velocity_projection = torch.einsum("dNML,d->NML", velocity_slice, self.lattice_velocity_const[:, north_index])
+        #     weight = self.lattice_weights[north_index]
+        #     population[
+        #         opposite_index,
+        #         self.access_indices[0][1]:
+        #         self.access_indices[0][2],
+        #         self.access_indices[1][2] - self.num_halo_cells if self.dimension != 1 else 0:
+        #         self.access_indices[1][3] - self.num_halo_cells if self.dimension != 1 else 1,
+        #         self.access_indices[2][1] if self.dimension == 3 else 0:
+        #         self.access_indices[2][2] if self.dimension == 3 else 1,
+        #     ] = - f_slice + 2.0 * weight * density_slice * (1.0 + 0.5 * 9.0 * wall_velocity_projection**2 - 0.5 * 3.0 * square_velocity_projection)
+        population[:, :, -self.num_halo_cells :, :] = population[:, :, -2 * self.num_halo_cells : -self.num_halo_cells, :]
         return population
 
     def update_south_zero_gradient(self, population: torch.Tensor, velocity: torch.Tensor, density: torch.Tensor) -> torch.Tensor:

@@ -36,8 +36,8 @@ class ShearLayerInitialCondition(TorchlbmInitialCondition):
     def get_initial_temperature(self, X, Y, Z):
         tempg = 1.0 * 0.09433
         templ = 0.85 * 0.09433
-        r0 = .125
-        w = .025
+        r0 = .15
+        w = .035
         x1 = .5
         y1 = .5
         a = (templ + tempg)/2

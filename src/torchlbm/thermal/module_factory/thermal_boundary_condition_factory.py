@@ -56,7 +56,7 @@ def get_thermal_boundary_condition_modules(state: TorchlbmState) -> List:
         boundary_condition_modules.append(get_thermal_outlet_boundary_module(state))
 
     # Add bounce back boundary condition here later
-    if torch.sum(state.node_data.bounce_back_mask) > 0:
+    if torch.sum(state.node_data.bounce_back_mask == 1) > 0:
         boundary_condition_modules.append(get_thermal_bounce_back_boundary_module(state))
 
     if (
@@ -454,55 +454,55 @@ def get_thermal_zero_gradient_boundary_module(state: TorchlbmState) -> ZeroGradi
     Returns:
         ZeroGradientBoundaryUpdate: The created object.
     """
-    raise NotImplementedError("ZeroGradientBoundaryUpdate is not implemented yet.")
-    # num_halo_cells: int = state.torchlbm_setup["Domain"]["NumHaloCells"].value
-    # internal_cells: List[int] = state.torchlbm_setup["Domain"]["InternalCells"].value
+    # raise NotImplementedError("ZeroGradientBoundaryUpdate is not implemented yet.")
+    num_halo_cells: int = state.torchlbm_setup["Domain"]["NumHaloCells"].value
+    internal_cells: List[int] = state.torchlbm_setup["Domain"]["InternalCells"].value
 
-    # access_indices: List[List[int]] = [
-    #     [0, num_halo_cells, num_halo_cells + internal_cells[0], 2 * num_halo_cells + internal_cells[0]],
-    #     [0, num_halo_cells, num_halo_cells + internal_cells[1], 2 * num_halo_cells + internal_cells[1]],
-    #     [0, num_halo_cells, num_halo_cells + internal_cells[2], 2 * num_halo_cells + internal_cells[2]],
-    # ]
-    # dimension = state.torchlbm_setup["Domain"]["DimensionInteger"].value
+    access_indices: List[List[int]] = [
+        [0, num_halo_cells, num_halo_cells + internal_cells[0], 2 * num_halo_cells + internal_cells[0]],
+        [0, num_halo_cells, num_halo_cells + internal_cells[1], 2 * num_halo_cells + internal_cells[1]],
+        [0, num_halo_cells, num_halo_cells + internal_cells[2], 2 * num_halo_cells + internal_cells[2]],
+    ]
+    dimension = state.torchlbm_setup["Domain"]["DimensionInteger"].value
 
-    # is_east_zero_gradient = state.torchlbm_setup["Domain"]["BoundaryConditions"]["East"]["Type"].value == "ZeroGradient"
-    # is_west_zero_gradient = state.torchlbm_setup["Domain"]["BoundaryConditions"]["West"]["Type"].value == "ZeroGradient"
-    # is_north_zero_gradient = state.torchlbm_setup["Domain"]["BoundaryConditions"]["North"]["Type"].value == "ZeroGradient"
-    # is_south_zero_gradient = state.torchlbm_setup["Domain"]["BoundaryConditions"]["South"]["Type"].value == "ZeroGradient"
-    # is_top_zero_gradient = state.torchlbm_setup["Domain"]["BoundaryConditions"]["Top"]["Type"].value == "ZeroGradient"
-    # is_bottom_zero_gradient = state.torchlbm_setup["Domain"]["BoundaryConditions"]["Bottom"]["Type"].value == "ZeroGradient"
+    is_east_zero_gradient = state.torchlbm_setup["Domain"]["BoundaryConditions"]["East"]["Type"].value == "ZeroGradient"
+    is_west_zero_gradient = state.torchlbm_setup["Domain"]["BoundaryConditions"]["West"]["Type"].value == "ZeroGradient"
+    is_north_zero_gradient = state.torchlbm_setup["Domain"]["BoundaryConditions"]["North"]["Type"].value == "ZeroGradient"
+    is_south_zero_gradient = state.torchlbm_setup["Domain"]["BoundaryConditions"]["South"]["Type"].value == "ZeroGradient"
+    is_top_zero_gradient = state.torchlbm_setup["Domain"]["BoundaryConditions"]["Top"]["Type"].value == "ZeroGradient"
+    is_bottom_zero_gradient = state.torchlbm_setup["Domain"]["BoundaryConditions"]["Bottom"]["Type"].value == "ZeroGradient"
 
-    # lattice_velocity = torch.tensor(state.lattice.lattice_velocities())
-    # lattice_weights = torch.tensor(state.lattice.lattice_weights())
+    lattice_velocity = torch.tensor(state.lattice.lattice_velocities())
+    lattice_weights = torch.tensor(state.lattice.lattice_weights())
 
-    # east_velocities = state.lattice.east_velocities()
-    # west_velocities = state.lattice.west_velocities()
-    # north_velocities = state.lattice.north_velocities()
-    # south_velocities = state.lattice.south_velocities()
-    # top_velocities = state.lattice.top_velocities()
-    # bottom_velocities = state.lattice.bottom_velocities()
-    # opposite_lattice_indices = state.lattice.opposite_lattice_indices()
+    east_velocities = state.lattice.east_velocities()
+    west_velocities = state.lattice.west_velocities()
+    north_velocities = state.lattice.north_velocities()
+    south_velocities = state.lattice.south_velocities()
+    top_velocities = state.lattice.top_velocities()
+    bottom_velocities = state.lattice.bottom_velocities()
+    opposite_lattice_indices = state.lattice.opposite_lattice_indices()
 
-    # return ZeroGradientBoundaryUpdate(
-    #     is_east_zero_gradient=is_east_zero_gradient,
-    #     is_west_zero_gradient=is_west_zero_gradient,
-    #     is_north_zero_gradient=is_north_zero_gradient,
-    #     is_south_zero_gradient=is_south_zero_gradient,
-    #     is_top_zero_gradient=is_top_zero_gradient,
-    #     is_bottom_zero_gradient=is_bottom_zero_gradient,
-    #     num_halo_cells=num_halo_cells,
-    #     access_indices=access_indices,
-    #     dimension=dimension,
-    #     lattice_velocity=lattice_velocity,
-    #     lattice_weights=lattice_weights,
-    #     east_velocities=east_velocities,
-    #     west_velocities=west_velocities,
-    #     north_velocities=north_velocities,
-    #     south_velocities=south_velocities,
-    #     top_velocities=top_velocities,
-    #     bottom_velocities=bottom_velocities,
-    #     opposite_lattice_indices=opposite_lattice_indices,
-    # )
+    return ZeroGradientBoundaryUpdate(
+        is_east_zero_gradient=is_east_zero_gradient,
+        is_west_zero_gradient=is_west_zero_gradient,
+        is_north_zero_gradient=is_north_zero_gradient,
+        is_south_zero_gradient=is_south_zero_gradient,
+        is_top_zero_gradient=is_top_zero_gradient,
+        is_bottom_zero_gradient=is_bottom_zero_gradient,
+        num_halo_cells=num_halo_cells,
+        access_indices=access_indices,
+        dimension=dimension,
+        lattice_velocity=lattice_velocity,
+        lattice_weights=lattice_weights,
+        east_velocities=east_velocities,
+        west_velocities=west_velocities,
+        north_velocities=north_velocities,
+        south_velocities=south_velocities,
+        top_velocities=top_velocities,
+        bottom_velocities=bottom_velocities,
+        opposite_lattice_indices=opposite_lattice_indices,
+    )
 
 
 def get_thermal_bounce_back_boundary_module(state: TorchlbmState) -> BounceBackBoundaryUpdate:

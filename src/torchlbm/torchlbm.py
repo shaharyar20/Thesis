@@ -275,7 +275,7 @@ class LbmSimulation:
                             measured_times["mlups"] = mlups
                             modulus_logger.log_epoch(measured_times)
 
-                # if torch.any(torch.isinf(self.state.node_data.distributions.old_population)) or torch.any(torch.isinf(self.state.node_data.distributions.new_population)) or torch.any(torch.isinf(self.state.node_data.moments.density)) or torch.any(torch.isinf(self.state.node_data.moments.velocity)):
+                # if torch.any(torch.isinf(self.state.node_data.distributions.vel_old_population)) or torch.any(torch.isinf(self.state.node_data.distributions.vel_new_population)) or torch.any(torch.isinf(self.state.node_data.moments.density)) or torch.any(torch.isinf(self.state.node_data.moments.velocity)):
                 #     self._output_writer.write_output(
                 #         self.state,
                 #         (iteration_index + 1) / (total_number_iterations * 10.0),
@@ -283,8 +283,8 @@ class LbmSimulation:
                 #     print("Indices where NaN:")
                 #     print(torch.isinf(self.state.node_data.moments.density).nonzero())
                 #     print(torch.isinf(self.state.node_data.moments.velocity).nonzero())
-                #     print(torch.isinf(self.state.node_data.distributions.old_population).nonzero())
-                #     print(torch.isinf(self.state.node_data.distributions.new_population).nonzero())
+                #     # print(torch.isinf(self.state.node_data.distributions.old_population).nonzero())
+                #     # print(torch.isinf(self.state.node_data.distributions.new_population).nonzero())
                 #     raise TorchlbmError("Values in the population tensor are NaN!")
             self._output_writer.generate_videos(self.state)
 
