@@ -48,6 +48,8 @@ def get_single_node_output_data(state: TorchlbmState) -> vtkImageData:
     density = torch.where(bounce_back_field > 0, 1.0, density)
 
     velocity = node.moments.velocity[:, start[0] : end[0], start[1] : end[1], start[2] : end[2]].clone().detach()
+    if node.moments.forcing_velocity is not None:
+        velocity += node.moments.forcing_velocity[:, start[0] : end[0], start[1] : end[1], start[2] : end[2]].clone().detach()
     velocity = unit_converter.convert_velocity_to_physical_units(velocity)
     velocity = torch.where(bounce_back_field.unsqueeze(0) > 0, 0.0, velocity)
 

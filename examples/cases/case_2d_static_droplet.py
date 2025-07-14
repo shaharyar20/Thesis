@@ -69,7 +69,7 @@ def main():
     simulation_setup["Output"]["Active"].value = True
     # simulation_setup["Output"]["ModulusArtifactsActive"].value = True
     # simulation_setup["Output"]["PrintTimingInformation"].value = False
-    simulation_setup["Output"]["OutputTimeInterval"].value = 1.0
+    simulation_setup["Output"]["OutputTimeInterval"].value = 0.1
     simulation_setup["Output"]["Velocity"]["Active"].value = True
     simulation_setup["Output"]["Velocity"]["ValueBounds"].value = [0.0, 1.0]
     simulation_setup["Output"]["Velocity"]["UseValueBounds"].value = False

@@ -49,6 +49,8 @@ def get_single_node_pyplot_data(state: TorchlbmState):
     density = density.detach().numpy()
 
     velocity = node.moments.velocity[:, start[0] : end[0], start[1] : end[1], start[2] : end[2]].clone().detach()
+    if node.moments.forcing_velocity is not None:
+        velocity += node.moments.forcing_velocity[:, start[0] : end[0], start[1] : end[1], start[2] : end[2]].clone().detach()
     velocity = unit_converter.convert_velocity_to_physical_units(velocity)
     velocity = torch.where(bounce_back_mask.unsqueeze(0) > 0, 0.0, velocity)
     velocity = velocity.detach().numpy()
