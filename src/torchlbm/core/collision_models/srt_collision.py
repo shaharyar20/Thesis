@@ -34,7 +34,5 @@ class SRTCollisionModule(nn.Module):
             1.0 - relaxation_omega
         ) * old_population + relaxation_omega * new_population
         if collision_source_term is not None:
-            discrete_velocities_post_collision += (
-                1.0 - 0.5 * relaxation_omega
-            ) * collision_source_term
+            discrete_velocities_post_collision += collision_source_term
         return discrete_velocities_post_collision

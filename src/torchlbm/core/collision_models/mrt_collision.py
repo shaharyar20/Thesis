@@ -65,9 +65,8 @@ class MRTCollisionModule(nn.Module):
         collide = self.relaxation_vector_const.unsqueeze(-1).unsqueeze(-1).unsqueeze(-1) * (moment_populations - moment_equilibrium_populations)
 
         if collision_source_term is not None:
-            moment_collision_source_term = torch.einsum("iQ,QNML->iNML", self.population_to_momentum_transform_const, collision_source_term)
-            collide -= (1.0 - 0.5 * self.relaxation_vector_const.unsqueeze(-1).unsqueeze(-1).unsqueeze(-1)) * moment_collision_source_term
+            collide -= collision_source_term
 
         discrete_velocities_post_collision = torch.einsum("iQ,QNML->iNML", self.momentum_to_population_transform_const, moment_populations - collide)
-
+        
         return discrete_velocities_post_collision

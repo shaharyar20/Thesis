@@ -1,7 +1,7 @@
 import torch.nn as nn
 import torch
 from dataclasses import dataclass
-from typing import List
+from typing import List, Optional
 
 from torchlbm.node_data import NodeData
 
@@ -19,6 +19,11 @@ class GuoForcingModule(nn.Module):
         force_vector: torch.tensor,
         lattice_velocities: List[List[float]],
         lattice_weights: List[float],
+        n_discrete_velocities: Optional[int] = None,
+        free_parameters: Optional[List[float]] = None,
+        free_parameter_indices: Optional[List[int]] = None,
+        viscosity_indices: Optional[List[int]] = None,
+        my_population_to_momentum_transform: Optional[List[List[float]]] = None,
     ) -> None:
         """Initializer of the module.
 
@@ -35,6 +40,14 @@ class GuoForcingModule(nn.Module):
         self.register_buffer("lattice_velocities_const", self.lattice_velocities)
         self.lattice_weights = torch.tensor(lattice_weights)
         self.register_buffer("lattice_weights_const", self.lattice_weights)
+        self.n_discrete_velocities = n_discrete_velocities
+        if self.n_discrete_velocities is not None:
+            self.my_population_to_momentum_transform = torch.Tensor(my_population_to_momentum_transform)
+            self.register_buffer("population_to_momentum_transform_const", self.my_population_to_momentum_transform)
+            self.viscosity_indices = viscosity_indices
+            self.relaxation_vector = torch.ones(n_discrete_velocities)
+            self.relaxation_vector[free_parameter_indices] = torch.Tensor(free_parameters)
+            self.register_buffer("relaxation_vector_const", self.relaxation_vector)
 
     def forward(self, volume_force_field: torch.Tensor, density: torch.Tensor, velocity: torch.Tensor, relaxation_omega: torch.Tensor) -> List[torch.Tensor]:
         """The forward passt calculation the equilibrium macroscopic velocities for the volume force.
@@ -46,7 +59,6 @@ class GuoForcingModule(nn.Module):
             torch.Tensor: The equilibrium velocitiy that was calculated based on the force.
         """
         volume_force_field = volume_force_field + self.force_vector_const
-        equilibrium_macroscopic_velocities = volume_force_field / (density * relaxation_omega)
 
         equilibrium_macroscopic_velocities = 0.5 * volume_force_field / density
         macroscopic_velocity = velocity + equilibrium_macroscopic_velocities
@@ -68,4 +80,16 @@ class GuoForcingModule(nn.Module):
             weighted_discrete_velocities,
             volume_force_field
         )
+
+        if self.n_discrete_velocities is not None:
+            self.relaxation_vector_const[self.viscosity_indices] = relaxation_omega
+            collision_source_term = torch.einsum("iQ,QNML->iNML", self.population_to_momentum_transform_const, collision_source_term)
+            collision_source_term *= (
+                1.0 - 0.5 * self.relaxation_vector_const.unsqueeze(-1).unsqueeze(-1).unsqueeze(-1)
+            )
+        else:
+            collision_source_term *= (
+                1.0 - 0.5 * relaxation_omega
+            )
+            
         return equilibrium_macroscopic_velocities, volume_force_field, collision_source_term
