@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 import torch
 import torch.nn as nn
 
@@ -21,6 +21,11 @@ class ForceCalculationMultiphaseModule(nn.Module):
         n_discrete_velocities: int,
         is_gravity_active: bool,
         gravity_value: float,
+        free_parameters: Optional[List[float]] = None,
+        free_parameter_indices: Optional[List[int]] = None,
+        viscosity_indices: Optional[List[int]] = None,
+        my_population_to_momentum_transform: Optional[List[List[float]]] = None,
+        sigma: float = 0.11,
     ) -> None:
         """Constructor of the module. The constructor is usually called from a factory function.
 
@@ -43,8 +48,16 @@ class ForceCalculationMultiphaseModule(nn.Module):
         self.is_gravity_active = is_gravity_active
         self.gravity_vector = torch.tensor([0.0, -gravity_value, 0.0]).unsqueeze(-1).unsqueeze(-1).unsqueeze(-1) 
         self.register_buffer("gravity_vector_const", self.gravity_vector)
+        self.sigma = sigma
+        if free_parameters is not None:
+            self.my_population_to_momentum_transform = torch.Tensor(my_population_to_momentum_transform)
+            self.register_buffer("population_to_momentum_transform_const", self.my_population_to_momentum_transform)
+            self.viscosity_indices = viscosity_indices
+            self.relaxation_vector = torch.ones(n_discrete_velocities)
+            self.relaxation_vector[free_parameter_indices] = torch.Tensor(free_parameters)
+            self.register_buffer("relaxation_vector_const", self.relaxation_vector)
 
-    def forward(self, pseudopotential: torch.Tensor, volume_force_field: torch.Tensor, density: torch.Tensor) -> torch.Tensor:
+    def forward(self, pseudopotential: torch.Tensor, volume_force_field: torch.Tensor, collision_source_term: torch.Tensor, density: torch.Tensor) -> torch.Tensor:
         """The main functionality of the module as the forward pass of the module.
         It performs the calculation of the pseudopotential forces.
 
@@ -79,7 +92,12 @@ class ForceCalculationMultiphaseModule(nn.Module):
         shanchen_force *= -pseudopotential * self.G
         volume_force_field += shanchen_force
 
+        additional_term = 12 * self.sigma * torch.einsum("dNML, dNML -> NML", shanchen_force, shanchen_force) / (pseudopotential**2)
+
+        collision_source_term[1] += additional_term
+        collision_source_term[2] -= additional_term
+
         if self.is_gravity_active:
             volume_force_field += (density - density.mean()) * self.gravity_vector_const
 
-        return volume_force_field
+        return volume_force_field, collision_source_term

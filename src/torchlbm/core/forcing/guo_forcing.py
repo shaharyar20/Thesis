@@ -49,7 +49,7 @@ class GuoForcingModule(nn.Module):
             self.relaxation_vector[free_parameter_indices] = torch.Tensor(free_parameters)
             self.register_buffer("relaxation_vector_const", self.relaxation_vector)
 
-    def forward(self, volume_force_field: torch.Tensor, density: torch.Tensor, velocity: torch.Tensor, relaxation_omega: torch.Tensor) -> List[torch.Tensor]:
+    def forward(self, volume_force_field: torch.Tensor, collision_source_term: torch.Tensor, density: torch.Tensor, velocity: torch.Tensor, relaxation_omega: torch.Tensor) -> List[torch.Tensor]:
         """The forward passt calculation the equilibrium macroscopic velocities for the volume force.
 
         Args:
@@ -75,7 +75,7 @@ class GuoForcingModule(nn.Module):
         weighted_discrete_velocities = self.lattice_weights_const.unsqueeze(-1).unsqueeze(-1).unsqueeze(-1) * (
                 difference_velocities + unprojected_discrete_velocities)
 
-        collision_source_term = torch.einsum(
+        source_term = torch.einsum(
             "dQNML,dNML->QNML",
             weighted_discrete_velocities,
             volume_force_field
@@ -83,13 +83,15 @@ class GuoForcingModule(nn.Module):
 
         if self.n_discrete_velocities is not None:
             self.relaxation_vector_const[self.viscosity_indices] = relaxation_omega
-            collision_source_term = torch.einsum("iQ,QNML->iNML", self.population_to_momentum_transform_const, collision_source_term)
-            collision_source_term *= (
+            source_term = torch.einsum("iQ,QNML->iNML", self.population_to_momentum_transform_const, source_term)
+            source_term *= (
                 1.0 - 0.5 * self.relaxation_vector_const.unsqueeze(-1).unsqueeze(-1).unsqueeze(-1)
             )
         else:
-            collision_source_term *= (
+            source_term *= (
                 1.0 - 0.5 * relaxation_omega
             )
+
+        collision_source_term = collision_source_term + source_term
             
         return equilibrium_macroscopic_velocities, volume_force_field, collision_source_term
