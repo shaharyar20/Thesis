@@ -22,10 +22,10 @@ class ShearLayerInitialCondition(TorchlbmInitialCondition):
 
 
     def get_initial_density(self, X, Y, Z):
-        rhol = 0.278
-        rhog = 0.0278
-        r0 = .15
-        w = .035
+        rhol = 0.4662688
+        rhog = 0.00037181
+        r0 = 40/200.
+        w = 5./200.
         x1 = .5
         y1 = .5
         a = (rhol + rhog)/2
@@ -45,7 +45,7 @@ def main():
     simulation_setup = TorchlbmSetup("StaticDroplet")
     simulation_setup["Domain"]["Dimension"].value = "2D"
     simulation_setup["Domain"]["NodeSize"].value = 1.0
-    simulation_setup["Domain"]["CellsPerNode"].value = 150
+    simulation_setup["Domain"]["CellsPerNode"].value = 200
     simulation_setup["Domain"]["NumHaloCells"].value = 1
     simulation_setup["Domain"]["NodeRatio"].value = [1, 1, 1]
     simulation_setup["Domain"]["BoundaryConditions"]["East"]["Type"].value = "Periodic"
@@ -69,7 +69,7 @@ def main():
     simulation_setup["Output"]["Active"].value = True
     # simulation_setup["Output"]["ModulusArtifactsActive"].value = True
     # simulation_setup["Output"]["PrintTimingInformation"].value = False
-    simulation_setup["Output"]["OutputTimeInterval"].value = 0.1
+    simulation_setup["Output"]["OutputTimeInterval"].value = 0.5
     simulation_setup["Output"]["Velocity"]["Active"].value = True
     simulation_setup["Output"]["Velocity"]["ValueBounds"].value = [0.0, 1.0]
     simulation_setup["Output"]["Velocity"]["UseValueBounds"].value = False
@@ -84,7 +84,7 @@ def main():
     simulation_setup["Physics"]["MachNumber"].value = 0.05
     simulation_setup["Physics"]["EndTime"].value = 2.0
     simulation_setup["Physics"]["CharacteristicVelocityPu"].value = 1.0
-    simulation_setup["Physics"]["KinematicViscosityPu"].value = 0.01 # Make tau 1
+    simulation_setup["Physics"]["KinematicViscosityPu"].value = 0.01 # Can go as low as 0.003
     simulation_setup["Physics"]["Precision"].value = "Single"
     simulation_setup["Physics"]["VolumeForces"]["Active"].value = True
     simulation_setup["Physics"]["VolumeForces"]["Type"].value = "Guo"
@@ -92,7 +92,11 @@ def main():
 
     simulation_setup["Multiphase"]["Active"].value = True
     simulation_setup["Multiphase"]["EOS"].value = "CarnahanStarling"
-    simulation_setup["Multiphase"]["CarnahanStarlingEOS"]["ReducedTemperature"].value = 0.85
+    simulation_setup["Multiphase"]["CarnahanStarlingEOS"]["ReducedTemperature"].value = 0.475
+    simulation_setup["Multiphase"]["CarnahanStarlingEOS"]["a"].value = 0.5
+    simulation_setup["Multiphase"]["CarnahanStarlingEOS"]["b"].value = 4.0
+    simulation_setup["Multiphase"]["CarnahanStarlingEOS"]["R"].value = 1.0
+    simulation_setup["Multiphase"]["MRTTuningParamater"].value = 0.32
 
 
     # simulation_setup["Physics"]["NonNewtonian"]["Active"].value = False
@@ -104,8 +108,8 @@ def main():
 
     # simulation_setup["Algorithm"]["Operators"]["EquilibriumCalculation"]["Type"].value = "Classical"
     # simulation_setup["Algorithm"]["Operators"]["EquilibriumCalculation"]["ModelPath"].value = "distribution_learning/models/eq_model.pth"
-    simulation_setup["Algorithm"]["Operators"]["Collision"]["Type"].value = "SRT"
-    simulation_setup["Algorithm"]["Operators"]["Collision"]["MRT"]["FreeParameters"].value = [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+    simulation_setup["Algorithm"]["Operators"]["Collision"]["Type"].value = "MRT"
+    simulation_setup["Algorithm"]["Operators"]["Collision"]["MRT"]["FreeParameters"].value = [1.0, 1.1, 1.1, 1.0, 1.1, 1.0, 1.1]#[1.0, 1.0/1.1, 1.0/1.1, 1.0, 1.0/1.1, 1.0, 1.0/1.1]
     # simulation_setup["Algorithm"]["Operators"]["Collision"]["ModelPath"].value = "distribution_learning/models/eq_model.pth"
 
     simulation_setup["Lattice"]["NSE"]["1D"].value = "D1Q2"

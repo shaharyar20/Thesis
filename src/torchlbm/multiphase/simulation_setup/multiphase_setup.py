@@ -47,6 +47,9 @@ class MultiphaseSetup(SetupSet):
                 "CarnahanStarlingEOS",
                 [
                     SetupTag("ReducedTemperature", 0.9, False, FloatConverter(0.0, 1.0, False)),
+                    SetupTag("a", 1.0, False, FloatConverter(0.0, None, False)),
+                    SetupTag("b", 4.0, False, FloatConverter(0.0, None, False)),
+                    SetupTag("R", 1.0, False, FloatConverter(0.0, None, False)),
                 ]
             ),
             SetupSet(
@@ -55,6 +58,7 @@ class MultiphaseSetup(SetupSet):
                     SetupTag("ReducedTemperature", 0.9, False, FloatConverter(0.0, 1.0, False)),
                 ]
             ),
+            SetupTag("MRTTuningParamater", 0.32, False, FloatConverter(0.0, None, False)),
         ]
 
         super().__init__("Multiphase", settings)
