@@ -18,6 +18,7 @@ class ActivationOption(Enum):
     gelu = 3
     sigmoid = 4
     softmax = 5
+    tanh = 6
 
 
 def get_activation_function(activation_option: ActivationOption):
@@ -42,6 +43,10 @@ def get_activation_function(activation_option: ActivationOption):
     elif activation_option == ActivationOption.softmax:
         activation_function = nn.Softmax
         activation_params = {"dim": 1}
+        return activation_function, activation_params
+    elif activation_option == ActivationOption.tanh:
+        activation_function = nn.Tanh
+        activation_params = {}
         return activation_function, activation_params
     else:
         raise TorchlbmError("The selected loss funtion is not yet implemented!")

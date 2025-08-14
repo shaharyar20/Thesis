@@ -35,6 +35,5 @@ def get_collision_module(state: TorchlbmState) -> SRTCollisionModule:
         return EntropicMRTCollisionModule(
             lattice_velocities=state.lattice.lattice_velocities(),
             lattice_weights=state.lattice.lattice_weights(),
-            relaxation_omega=state.torchlbm_setup["Physics"]["RelaxationOmega"].value,
             model=state.torchlbm_setup["Domain"]["DimensionInteger"].value,
         )

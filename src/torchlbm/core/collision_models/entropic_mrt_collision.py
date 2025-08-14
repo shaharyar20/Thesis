@@ -13,7 +13,7 @@ class EntropicMRTCollisionModule(nn.Module):
         nn (nn.Module): The collision operator is implemented as a PyTorch module. This allows easily composing algorithms based on consecutive modules.
     """
 
-    def __init__(self, lattice_velocities: List[List[float]], lattice_weights: List[List[float]], relaxation_omega: float, model: int) -> None:
+    def __init__(self, lattice_velocities: List[List[float]], lattice_weights: List[List[float]], model: int) -> None:
         """The initializer of the two relaxation time collosion module.
         Args:
             relaxation_omega (float): The relaxation parameter.
