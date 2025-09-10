@@ -32,7 +32,7 @@ class EntropicMRTCollisionModule(nn.Module):
         self.lattice_weights = torch.tensor(lattice_weights).clone().detach()
         self.register_buffer("lattice_weights_const", self.lattice_weights)
 
-    def forward(self, old_population: torch.Tensor, new_population: torch.Tensor, relaxation_omega: torch.Tensor) -> torch.Tensor:
+    def forward(self, old_population: torch.Tensor, new_population: torch.Tensor, relaxation_omega: torch.Tensor, collision_source_term: torch.Tensor) -> torch.Tensor:
         """The forward pass of the collision module. Gets as input the discretized velocity distribution of the start of the timestept,
         and the equilibrium distribution calculated based on it. It returns the post-collision distribution.
         Args:

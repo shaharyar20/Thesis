@@ -166,15 +166,8 @@ class OutputWriter:
 
                 os.remove(gif_filename)
 
-                # frame = cv2.imread(str(self._image_lists[key][0]))
-                # height, width, layers = frame.shape
+    def evaluate_quantities(self, state: TorchlbmState, timestamp: int):
+        pass
 
-                # video = cv2.VideoWriter(str(self._visualization_folder.joinpath(f"{key}.mov")), cv2.VideoWriter_fourcc("m", "p", "4", "v"), 2, (width, height))
-
-                # for image in self._image_lists[key]:
-                #     video.write(cv2.imread(str(image)))
-                # cv2.destroyAllWindows()
-                # video.release()
-                # import moviepy.video.io.ImageSequenceClip
-                # movie_clip = moviepy.video.io.ImageSequenceClip.ImageSequenceClip(value, 15)
-                # movie_clip.write_videofile(str(self._visualization_folder.joinpath(f"{key}.mov")))
+    def write_quantities(self, state: TorchlbmState):
+        pass

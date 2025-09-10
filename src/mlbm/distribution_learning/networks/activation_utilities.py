@@ -19,6 +19,7 @@ class ActivationOption(Enum):
     sigmoid = 4
     softmax = 5
     tanh = 6
+    silu = 7
 
 
 def get_activation_function(activation_option: ActivationOption):
@@ -46,6 +47,10 @@ def get_activation_function(activation_option: ActivationOption):
         return activation_function, activation_params
     elif activation_option == ActivationOption.tanh:
         activation_function = nn.Tanh
+        activation_params = {}
+        return activation_function, activation_params
+    elif activation_option == ActivationOption.silu:
+        activation_function = nn.SiLU
         activation_params = {}
         return activation_function, activation_params
     else:

@@ -17,6 +17,7 @@ def rmsre(y_true, y_pred, eps=1e-14):
 
 def msre(y_true, y_pred, eps=1e-14):
     return torch.mean(torch.abs((y_pred - y_true) / (y_true + eps)))
+    # return torch.mean(torch.square((y_pred - y_true) / (y_true + eps)))
 
 
 def mass_loss(y_true, y_pred):

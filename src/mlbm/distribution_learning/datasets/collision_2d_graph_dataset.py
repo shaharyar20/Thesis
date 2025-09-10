@@ -155,7 +155,7 @@ class Collision2DGraphDataset(Dataset):
         self.non_equilibrium = old_population - new_population
 
         # new_population = collision_module(sample)
-        new_population = collision_module(old_population=old_population, new_population=new_population, relaxation_omega=self.relaxation_omega)
+        new_population = collision_module(old_population=old_population, new_population=new_population, relaxation_omega=self.relaxation_omega, collision_source_term=None)
 
         self.pre_collision = old_population
         self.post_collision = new_population
@@ -177,7 +177,7 @@ class Collision2DGraphDataset(Dataset):
 
         if graph_structure == 1:
             edge_index = torch.tensor([[0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8], [1, 2, 3, 4, 5, 6, 7, 8, 0, 0, 0, 0, 0, 0, 0, 0]])
-            lattice_weights = torch.tensor(lattice.lattice_weights()[1:]).reshape(8, 1)
+            lattice_weights = torch.tensor(lattice.lattice_weights()).reshape(9, 1)
             pos = discrete_velocities[:-1].transpose(0, 1)
             for i in range(self.num_samples):
                 x = self.pre_collision[i].reshape(9, 1)

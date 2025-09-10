@@ -3,6 +3,8 @@ from torchlbm.core.collision_models.srt_collision import SRTCollisionModule
 from torchlbm.core.collision_models.trt_collision import TRTCollisionModule
 from torchlbm.core.collision_models.mrt_collision import MRTCollisionModule
 from torchlbm.core.collision_models.entropic_mrt_collision import EntropicMRTCollisionModule
+from torchlbm.core.collision_models.gnn_collision import GNNCollisionModule
+from mlbm.distribution_learning.trial_networks.gcn4 import GraphCollisionNetwork4
 
 
 def get_collision_module(state: TorchlbmState) -> SRTCollisionModule:
@@ -36,4 +38,9 @@ def get_collision_module(state: TorchlbmState) -> SRTCollisionModule:
             lattice_velocities=state.lattice.lattice_velocities(),
             lattice_weights=state.lattice.lattice_weights(),
             model=state.torchlbm_setup["Domain"]["DimensionInteger"].value,
+        )
+    elif state.torchlbm_setup["Algorithm"]["Operators"]["Collision"]["Type"].value == "GNN":
+        return GNNCollisionModule(
+            model= GraphCollisionNetwork4,
+            model_path=state.torchlbm_setup["Algorithm"]["Operators"]["Collision"]["ModelPath"].value,
         )

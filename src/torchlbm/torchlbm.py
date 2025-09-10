@@ -16,6 +16,7 @@ from torchlbm.torchlbm_initial_condition import TorchlbmInitialCondition
 from torchlbm.exceptions import TorchlbmError
 from torchlbm.node_data import NodeData
 from torchlbm.thermal.thermal_advance import ThermalAdvanceModule
+from torchlbm.ml_models.gnn_advance import GNNAdvanceModule
 
 from torchlbm.module_factory.collision_module_factory import get_collision_module
 from torchlbm.module_factory.streaming_module_factory import get_streaming_module
@@ -62,7 +63,7 @@ def timing(f):
 class LbmSimulation:
     """The class that performs the timestep loop and contains all relevant information about the simulation."""
 
-    def __init__(self, torchlbm_setup: TorchlbmSetup, initial_condition: TorchlbmInitialCondition, use_modulus: bool = True) -> None:
+    def __init__(self, torchlbm_setup: TorchlbmSetup, initial_condition: TorchlbmInitialCondition, output_writer: OutputWriter = None, use_modulus: bool = True) -> None:
         """The initializer for the simulation class.
 
         Args:
@@ -88,7 +89,11 @@ class LbmSimulation:
 
         self.num_cells = torchlbm_setup["Domain"]["TotalCells"].value
 
-        self._output_writer: OutputWriter = OutputWriter(self._result_folder, self.torchlbm_logger, self.state)
+        # self._output_writer: OutputWriter = OutputWriter(self._result_folder, self.torchlbm_logger, self.state)
+        if output_writer is None:
+            self._output_writer: OutputWriter = OutputWriter(self._result_folder, self.torchlbm_logger, self.state)
+        else:
+            self._output_writer: OutputWriter = output_writer(self._result_folder, self.torchlbm_logger, self.state)
 
         self.timers = {
             "Update": Timer(self.torchlbm_logger, name="Update", indent_level=4),
@@ -149,6 +154,22 @@ class LbmSimulation:
                 non_newtonian_module=get_non_newtonian_module(self.state),
                 is_non_newtonian_active=self.state.torchlbm_setup["Physics"]["NonNewtonian"]["Active"].value,
             )
+        elif self.state.torchlbm_setup["Algorithm"]["Operators"]["Collision"]["Type"].value == "GNN":
+            self.advance_module = GNNAdvanceModule(
+                unit_converter=self.state.unit_converter,
+                collision_module=get_collision_module(self.state),
+                streaming_module=get_streaming_module(self.state),
+                macroscopic_module=get_macroscopic_quantity_calculation_module(self.state),
+                equilibrium_module=get_equilibrium_calculation_module(self.state),
+                pseudopotential_module=get_pseudopotential_module(self.state),
+                multiphase_forcing_module=get_multiphase_forcing_module(self.state),
+                is_multiphase_active=self.state.torchlbm_setup["Multiphase"]["Active"].value,
+                boundary_condition_modules=get_boundary_condition_modules(self.state),
+                forcing_module=get_forcing_module(self.state),
+                is_forcing_active=self.state.torchlbm_setup["Physics"]["VolumeForces"]["Active"].value or self.state.torchlbm_setup["Multiphase"]["Active"].value,
+                non_newtonian_module=get_non_newtonian_module(self.state),
+                is_non_newtonian_active=self.state.torchlbm_setup["Physics"]["NonNewtonian"]["Active"].value,
+            )
         else:
             self.advance_module = AdvanceModule(
                 unit_converter=self.state.unit_converter,
@@ -184,6 +205,7 @@ class LbmSimulation:
         delta_t_pu = self.state.unit_converter.convert_time_to_physical_units(1.0)
         total_number_iterations = math.ceil(self.state.torchlbm_setup["Physics"]["EndTime"].value / delta_t_pu)
         plot_time_interval = self.state.torchlbm_setup["Output"]["OutputTimeInterval"].value
+        evaluation_time_interval = self.state.torchlbm_setup["Output"]["EvaluationTimeInterval"].value
 
         # self.state.unit_converter.log_units()
 
@@ -193,6 +215,7 @@ class LbmSimulation:
         if torch.cuda.is_available():
             self.advance_module = self.advance_module.cuda()
             self.state.cuda()
+            self.state.node_data.relaxation_omega = self.state.node_data.relaxation_omega.cuda()
 
         if not torch.backends.mps.is_available() and torch.backends.mps.is_built():
             mps_device = torch.device("mps")
@@ -202,6 +225,7 @@ class LbmSimulation:
 
         if self.state.torchlbm_setup["Output"]["Active"].value:
             self._output_writer.write_output(self.state, 0.0)
+            self._output_writer.evaluate_quantities(self.state, 0.0)
         if self.state.torchlbm_setup["Output"]["ModulusArtifactsActive"].value and self.use_modulus:
             with LaunchLogger("Simulation", epoch=0) as modulus_logger:
 
@@ -256,10 +280,18 @@ class LbmSimulation:
                 current_time_interval_floor = math.floor((iteration_index + 1) * delta_t_pu / plot_time_interval)
                 last_time_interval_floor = math.floor(iteration_index * delta_t_pu / plot_time_interval)
                 output_decision_interval = current_time_interval_floor != last_time_interval_floor or iteration_index == total_number_iterations - 1
+                current_evaluation_time_interval_floor = math.floor((iteration_index + 1) * delta_t_pu / evaluation_time_interval)
+                last_evaluation_time_interval_floor = math.floor(iteration_index * delta_t_pu / evaluation_time_interval)
+                evaluation_decision_interval = current_evaluation_time_interval_floor != last_evaluation_time_interval_floor or iteration_index == total_number_iterations - 1
                 if (output_decision_every_step or output_decision_interval) and self.state.torchlbm_setup["Output"]["Active"].value:
                     self._output_writer.write_output(
                         self.state,
                         (iteration_index + 1) / (total_number_iterations * 10.0),
+                    )
+                if evaluation_decision_interval and self.state.torchlbm_setup["Output"]["Active"].value:
+                    self._output_writer.evaluate_quantities(
+                        self.state,
+                        (iteration_index + 1) * delta_t_pu,
                     )
                 if (output_decision_every_step or output_decision_interval) and self.state.torchlbm_setup["Output"]["ModulusArtifactsActive"].value:
                     with LaunchLogger("Simulation", epoch=iteration_index) if self.use_modulus else nullcontext() as modulus_logger:
@@ -287,5 +319,7 @@ class LbmSimulation:
                 #     # print(torch.isinf(self.state.node_data.distributions.new_population).nonzero())
                 #     raise TorchlbmError("Values in the population tensor are NaN!")
             self._output_writer.generate_videos(self.state)
+        if self.state.torchlbm_setup["Output"]["Active"].value:
+            self._output_writer.write_quantities(self.state)
 
         self.torchlbm_logger.bye_message(log_text="Simulation finished")

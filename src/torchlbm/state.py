@@ -321,6 +321,23 @@ class TorchlbmState:
             self.node_data.distributions.vel_old_population = self.node_data.distributions.vel_new_population.clone()
             self.node_data.distributions.temp_old_population = self.node_data.distributions.temp_new_population.clone()
 
+        elif self.torchlbm_setup["Algorithm"]["Operators"]["Collision"]["Type"].value == "GNN":
+            self.node_data: NodeData = NodeData(
+                distributions=Distributions(
+                    torch.empty([self.lattice.n_discrete_velocities, density_shape[0], density_shape[1], density_shape[2]]),
+                    None,
+                    initial_collision_source_term,
+                ),
+                moments=Moments(initial_density, velocity_profile, initial_forcing_velocity, initial_volume_force_field),
+                relaxation_omega=initial_relaxation_omega,
+                bounce_back_mask=initial_bounce_back_mask.to(torch.int8) if initial_bounce_back_mask is not None else None,
+            )
+            self.node_data.distributions.old_population = equilibrium_module(
+                self.node_data.moments.density,
+                self.node_data.moments.velocity,
+                self.node_data.moments.forcing_velocity,
+            )
+
         else:
             self.node_data: NodeData = NodeData(
                 distributions=Distributions(
