@@ -45,7 +45,7 @@ class IoSetup(SetupSet):
             SetupTag("PrintTimingInformation", True, False, BoolConverter()),
             SetupTag("OutputTimeInterval", 1.0, True, FloatConverter(0.0, None, False)),
             SetupTag("OutputEveryStep", False, False, BoolConverter()),
-            SetupTag("EvaluationTimeInterval", 1.0, True, FloatConverter(0.0, None, False)),
+            SetupTag("EvaluationTimeInterval", 1.0, False, FloatConverter(0.0, None, False)),
             SetupSet(
                 "Velocity",
                 velocity_output_quantity_settings,

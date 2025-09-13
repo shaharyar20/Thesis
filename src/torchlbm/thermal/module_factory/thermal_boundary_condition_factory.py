@@ -7,7 +7,7 @@ from torchlbm.boundaries.periodic_boundary_update import PeriodicBoundaryUpdate
 from torchlbm.boundaries.wall_boundary_update import WallBoundaryUpdate
 from torchlbm.boundaries.inlet_boundary_update import InletBoundaryUpdate
 from torchlbm.boundaries.outlet_boundary_condition import OutletBoundaryUpdate
-from torchlbm.boundaries.bounce_back_boundary_update import BounceBackBoundaryUpdate
+from torchlbm.boundaries.fullway_bounce_back_boundary_update import FullwayBounceBackBoundaryUpdate
 from torchlbm.boundaries.zero_gradient_boundary_update import ZeroGradientBoundaryUpdate
 from torchlbm.boundaries.time_space_dependent_wall_boundary_update import TimeSpaceDependentWallBoundaryUpdate
 from torchlbm.thermal.boundaries.thermal_wall_boundary_update import ThermalWallBoundaryUpdate
@@ -505,7 +505,7 @@ def get_thermal_zero_gradient_boundary_module(state: TorchlbmState) -> ZeroGradi
     )
 
 
-def get_thermal_bounce_back_boundary_module(state: TorchlbmState) -> BounceBackBoundaryUpdate:
+def get_thermal_bounce_back_boundary_module(state: TorchlbmState) -> FullwayBounceBackBoundaryUpdate:
     """Factory function for a bounce back boundary update object.
 
     Args:

@@ -14,6 +14,7 @@ from torchlbm.node_data import NodeData, Distributions, Moments
 from torchlbm.thermal_node_data import ThermalNodeData, ThermalDistributions, ThermalMoments
 from torchlbm.unit_converter import UnitConverter
 from torchlbm.logger import Logger
+from torchlbm.boundaries.intersection import find_intersection
 
 
 def get_meshgrid_for_node(number_nodes: List[int], lattice_distance: float, cells_per_node: int, num_halo_cells: int, dimension: int) -> List[torch.Tensor]:
@@ -214,54 +215,54 @@ class TorchlbmState:
             [0, num_halo_cells, num_halo_cells + internal_cells[1], 2 * num_halo_cells + internal_cells[1]],
             [0, num_halo_cells, num_halo_cells + internal_cells[2], 2 * num_halo_cells + internal_cells[2]],
         ]
-        if self.torchlbm_setup["Domain"]["BoundaryConditions"]["South"]["Type"].value == "Wall":
-            initial_bounce_back_mask[
-                access_indices[0][1]:
-                access_indices[0][2],
-                access_indices[1][0] if dimension != 1 else 0:
-                access_indices[1][1] if dimension != 1 else 1,
-                access_indices[2][1] if dimension == 3 else 0:
-                access_indices[2][2] if dimension == 3 else 1, ] = 2
-        if self.torchlbm_setup["Domain"]["BoundaryConditions"]["North"]["Type"].value == "Wall":
-            initial_bounce_back_mask[
-                access_indices[0][1]:
-                access_indices[0][2],
-                access_indices[1][2] if dimension != 1 else 0:
-                access_indices[1][3] if dimension != 1 else 1,
-                access_indices[2][1] if dimension == 3 else 0:
-                access_indices[2][2] if dimension == 3 else 1, ] = 2
-        if self.torchlbm_setup["Domain"]["BoundaryConditions"]["West"]["Type"].value == "Wall":
-            initial_bounce_back_mask[
-                access_indices[0][0]:
-                access_indices[0][1],
-                access_indices[1][1] if dimension != 1 else 0:
-                access_indices[1][2] if dimension != 1 else 1,
-                access_indices[2][1] if dimension == 3 else 0:
-                access_indices[2][2] if dimension == 3 else 1, ] = 2
-        if self.torchlbm_setup["Domain"]["BoundaryConditions"]["East"]["Type"].value == "Wall":
-            initial_bounce_back_mask[
-                access_indices[0][2]:
-                access_indices[0][3],
-                access_indices[1][1] if dimension != 1 else 0:
-                access_indices[1][2] if dimension != 1 else 1,
-                access_indices[2][1] if dimension == 3 else 0:
-                access_indices[2][2] if dimension == 3 else 1, ] = 2
-        if self.torchlbm_setup["Domain"]["BoundaryConditions"]["Top"]["Type"].value == "Wall":
-            initial_bounce_back_mask[
-                access_indices[0][1]:
-                access_indices[0][2],
-                access_indices[1][1] if dimension != 1 else 0:
-                access_indices[1][2] if dimension != 1 else 1,
-                access_indices[2][2] if dimension == 3 else 0:
-                access_indices[2][3] if dimension == 3 else 1, ] = 2
-        if self.torchlbm_setup["Domain"]["BoundaryConditions"]["Bottom"]["Type"].value == "Wall":
-            initial_bounce_back_mask[
-                access_indices[0][1]:
-                access_indices[0][2],
-                access_indices[1][1] if dimension != 1 else 0:
-                access_indices[1][2] if dimension != 1 else 1,
-                access_indices[2][0] if dimension == 3 else 0:
-                access_indices[2][1] if dimension == 3 else 1, ] = 2
+        # if self.torchlbm_setup["Domain"]["BoundaryConditions"]["South"]["Type"].value == "Wall":
+        #     initial_bounce_back_mask[
+        #         access_indices[0][1]:
+        #         access_indices[0][2],
+        #         access_indices[1][0] if dimension != 1 else 0:
+        #         access_indices[1][1] if dimension != 1 else 1,
+        #         access_indices[2][1] if dimension == 3 else 0:
+        #         access_indices[2][2] if dimension == 3 else 1, ] = 2
+        # if self.torchlbm_setup["Domain"]["BoundaryConditions"]["North"]["Type"].value == "Wall":
+        #     initial_bounce_back_mask[
+        #         access_indices[0][1]:
+        #         access_indices[0][2],
+        #         access_indices[1][2] if dimension != 1 else 0:
+        #         access_indices[1][3] if dimension != 1 else 1,
+        #         access_indices[2][1] if dimension == 3 else 0:
+        #         access_indices[2][2] if dimension == 3 else 1, ] = 2
+        # if self.torchlbm_setup["Domain"]["BoundaryConditions"]["West"]["Type"].value == "Wall":
+        #     initial_bounce_back_mask[
+        #         access_indices[0][0]:
+        #         access_indices[0][1],
+        #         access_indices[1][1] if dimension != 1 else 0:
+        #         access_indices[1][2] if dimension != 1 else 1,
+        #         access_indices[2][1] if dimension == 3 else 0:
+        #         access_indices[2][2] if dimension == 3 else 1, ] = 2
+        # if self.torchlbm_setup["Domain"]["BoundaryConditions"]["East"]["Type"].value == "Wall":
+        #     initial_bounce_back_mask[
+        #         access_indices[0][2]:
+        #         access_indices[0][3],
+        #         access_indices[1][1] if dimension != 1 else 0:
+        #         access_indices[1][2] if dimension != 1 else 1,
+        #         access_indices[2][1] if dimension == 3 else 0:
+        #         access_indices[2][2] if dimension == 3 else 1, ] = 2
+        # if self.torchlbm_setup["Domain"]["BoundaryConditions"]["Top"]["Type"].value == "Wall":
+        #     initial_bounce_back_mask[
+        #         access_indices[0][1]:
+        #         access_indices[0][2],
+        #         access_indices[1][1] if dimension != 1 else 0:
+        #         access_indices[1][2] if dimension != 1 else 1,
+        #         access_indices[2][2] if dimension == 3 else 0:
+        #         access_indices[2][3] if dimension == 3 else 1, ] = 2
+        # if self.torchlbm_setup["Domain"]["BoundaryConditions"]["Bottom"]["Type"].value == "Wall":
+        #     initial_bounce_back_mask[
+        #         access_indices[0][1]:
+        #         access_indices[0][2],
+        #         access_indices[1][1] if dimension != 1 else 0:
+        #         access_indices[1][2] if dimension != 1 else 1,
+        #         access_indices[2][0] if dimension == 3 else 0:
+        #         access_indices[2][1] if dimension == 3 else 1, ] = 2
 
         density_shape = initial_density.shape
 
@@ -355,6 +356,130 @@ class TorchlbmState:
                 self.node_data.moments.forcing_velocity,
             )
             self.node_data.distributions.old_population = self.node_data.distributions.new_population.clone()
+
+        if self.torchlbm_setup["Domain"]["BoundaryConditions"]["BounceBackType"].value == "Interpolated" or self.torchlbm_setup["Domain"]["BoundaryConditions"]["BounceBackType"].value == "Halfway":
+
+            # Convert meshgrid_for_node from list of tensors to tensor
+            grid = torch.stack(meshgrid_for_node, dim=0)
+            # print(self.grid.shape)
+
+            # self.ibb_factors = -1 * torch.ones([self.lattice.number_of_discrete_velocities(), self.grid.shape[1], self.grid.shape[2], self.grid.shape[3]])
+            # print(self.ibb_factors.shape)
+
+            # def curve_function(X, Y):
+            #     # return 0.5 + 0.15*((1-torch.cos(2*torch.pi*X/2.0))) - Y
+            #     # return 0.5 + 0.3*torch.sin(torch.pi*X/4.0) - Y
+            #     return torch.sqrt((X-0.5)*(X-0.5)+(Y-0.5)*(Y-0.5)) - 0.1
+            
+            # Trying to correct bounce back first
+            first_mask = initial_bounce_back_mask.bool()
+            directions_to_check = torch.tensor(self.lattice.lattice_velocities()).int()
+            opp_indices = torch.tensor(self.lattice.opposite_lattice_indices()).int()
+            self.boundary_indices = []
+            self.opp_boundary_indices = []
+            self.ibb_factors1 = []
+            self.ibb_factors2 = []
+            self.additional_indices = []
+
+            # curve_function = initial_condition.get_curve_function(meshgrid_for_node[0], meshgrid_for_node[1], meshgrid_for_node[2])
+
+            # print(start, end)
+            # print(total_i, total_j, total_k)
+            # print(a)
+                
+            for i in range(1, self.lattice.number_of_discrete_velocities()):
+                shifted_mask = torch.roll(
+                    first_mask,
+                    shifts=[-directions_to_check[0][i], -directions_to_check[1][i]],
+                    dims=[0, 1],
+                )
+                # Check if the node is a fluid boundary node
+                fluid_edge = torch.where(shifted_mask & ~first_mask, True, False)
+                fluid_edge[0:num_halo_cells, :, :] = 0
+                fluid_edge[-num_halo_cells:, :, :] = 0
+                fluid_edge[:, 0:num_halo_cells, :] = 0
+                fluid_edge[:, -num_halo_cells:, :] = 0
+                # fluid_edge[:, :, 0:num_halo_cells] = 0
+                # fluid_edge[:, :, -num_halo_cells:] = 0
+
+                # Get the indices of the fluid edge nodes
+                indices = fluid_edge.nonzero(as_tuple=False)
+                
+                solid_indices = indices.clone()
+                solid_indices[:, 0] = solid_indices[:, 0] + directions_to_check[0][i]
+                solid_indices[:, 1] = solid_indices[:, 1] + directions_to_check[1][i]
+
+                if indices.shape[0] != 0:
+                    assert torch.equal(solid_indices, indices) != True
+
+                q_col = torch.full((indices.shape[0], 1), opp_indices[i])
+                indices_q = torch.cat((q_col, indices), dim=1)
+
+                opp_q_col = torch.full((solid_indices.shape[0], 1), i)
+                opp_indices_q = torch.cat((opp_q_col, solid_indices), dim=1)
+                self.boundary_indices.append(indices_q)
+                self.opp_boundary_indices.append(opp_indices_q)
+
+                if self.torchlbm_setup["Domain"]["BoundaryConditions"]["BounceBackType"].value == "Interpolated":
+
+                    ibb_factor_list1 = []
+                    ibb_factor_list2 = []
+                    additional_indices_list = []
+                    for index in indices:
+
+                        
+                        x1, y1, z1 = grid[:, index[0], index[1], index[2]]
+                        x2, y2, z2 = grid[:, index[0] + directions_to_check[0][i], index[1] + directions_to_check[1][i], index[2]]
+                        # print(x1, y1, x2, y2)
+                        intersection, _, _, _ = find_intersection(initial_condition.get_curve_function, 
+                                                               x1, y1, z1, x2, y2, z2)
+                        # print(intersection)
+                        # additional_index = index.clone()
+                        if intersection < 0.5:
+                            additional_indices_list.append(torch.tensor([i, index[0], index[1], index[2]]))
+                            if (index[0] + directions_to_check[0][i] == 0) or (index[1] + directions_to_check[1][i] == 0):
+                                i1 = 0.5
+                                i2 = 0.5
+                            else:
+                                i1 = 2.0 * intersection
+                                i2 = (1.0 - 2.0 * intersection)
+                        if intersection >= 0.5:
+                            # additional_index[0] = index[0] - directions_to_check[0][i]
+                            # additional_index[1] = index[1] - directions_to_check[1][i]
+                            additional_indices_list.append(torch.tensor([opp_indices[i], index[0] - directions_to_check[0][i], index[1] - directions_to_check[1][i], index[2]]))
+                            if (index[0] + directions_to_check[0][i] == grid.shape[1] - 1) or (index[1] + directions_to_check[1][i] == grid.shape[2] - 1):
+                                i1 = 0.5
+                                i2 = 0.5
+                            else:
+                                i1 = 1.0 / (2.0 * intersection)
+                                i2 = (2.0 * intersection - 1.0) / (2.0 * intersection)
+
+                        # ibb_factor_list1.append(i1)
+                        ibb_factor_list1.append(i1)
+                        ibb_factor_list2.append(i2)
+                        # additional_indices_list.append(additional_index)
+
+                    ibb_factor_list1 = torch.tensor(ibb_factor_list1)
+                    ibb_factor_list2 = torch.tensor(ibb_factor_list2)
+                    # print(ibb_factor_list1.shape, ibb_factor_list2.shape)
+                    # additional_indices_list = torch.tensor(additional_indices_list)
+                    if len(additional_indices_list) != 0:
+                        additional_indices_list = torch.stack(additional_indices_list)
+                        # print(additional_indices_list.shape)
+                        self.additional_indices.append(additional_indices_list)
+                    self.ibb_factors1.append(ibb_factor_list1)
+                    self.ibb_factors2.append(ibb_factor_list2)
+                
+
+
+            # Convert the list of tensors to a single tensor
+            self.boundary_indices = torch.cat(self.boundary_indices, dim=0)
+            self.opp_boundary_indices = torch.cat(self.opp_boundary_indices, dim=0)
+            if self.torchlbm_setup["Domain"]["BoundaryConditions"]["BounceBackType"].value == "Interpolated":
+                self.additional_indices = torch.cat(self.additional_indices, dim=0)
+                self.ibb_factors1 = torch.cat(self.ibb_factors1, dim=0)
+                self.ibb_factors2 = torch.cat(self.ibb_factors2, dim=0)
+
 
     def mps(self) -> None:
         """Moves all relevant data to the MPS device (tested for Apple MacBook with M chips.)"""

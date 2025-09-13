@@ -94,6 +94,7 @@ class OutletBoundaryUpdate(nn.Module):
         self.lattice_velocity_integers = lattice_velocity.clone().detach().int()
         self.lattice_velocity_integers = self.lattice_velocity_integers.tolist()
         self.lattice_weights = lattice_weights
+        self.register_buffer("lattice_weights_const", self.lattice_weights)
         self.east_velocities = east_velocities
         self.west_velocities = west_velocities
         self.north_velocities = north_velocities
@@ -148,7 +149,7 @@ class OutletBoundaryUpdate(nn.Module):
                 self.access_indices[2][2] + self.lattice_velocity_integers[2][east_index] if self.dimension == 3 else 1,
             ]
             wall_velocity_projection = torch.einsum("dNML,d->NML", velocity_slice, self.lattice_velocity_const[:, east_index])
-            weight = self.lattice_weights[east_index]
+            weight = self.lattice_weights_const[east_index]
             population[
                 opposite_index,
                 self.access_indices[0][2] - self.num_halo_cells:
@@ -198,7 +199,7 @@ class OutletBoundaryUpdate(nn.Module):
                 self.access_indices[2][2] + self.lattice_velocity_integers[2][west_index] if self.dimension == 3 else 1,
             ]
             wall_velocity_projection = torch.einsum("dNML,d->NML", velocity_slice, self.lattice_velocity_const[:, west_index])
-            weight = self.lattice_weights[west_index]
+            weight = self.lattice_weights_const[west_index]
             population[
                 opposite_index,
                 self.access_indices[0][0] + self.num_halo_cells:
@@ -248,7 +249,7 @@ class OutletBoundaryUpdate(nn.Module):
                 self.access_indices[2][2] + self.lattice_velocity_integers[2][north_index] if self.dimension == 3 else 1,
             ]
             wall_velocity_projection = torch.einsum("dNML,d->NML", velocity_slice, self.lattice_velocity_const[:, north_index])
-            weight = self.lattice_weights[north_index]
+            weight = self.lattice_weights_const[north_index]
             population[
                 opposite_index,
                 self.access_indices[0][1]:
@@ -298,7 +299,7 @@ class OutletBoundaryUpdate(nn.Module):
                 self.access_indices[2][2] + self.lattice_velocity_integers[2][south_index] if self.dimension == 3 else 1,
             ]
             wall_velocity_projection = torch.einsum("dNML,d->NML", velocity_slice, self.lattice_velocity_const[:, south_index])
-            weight = self.lattice_weights[south_index]
+            weight = self.lattice_weights_const[south_index]
             population[
                 opposite_index,
                 self.access_indices[0][1]:
@@ -348,7 +349,7 @@ class OutletBoundaryUpdate(nn.Module):
                 self.access_indices[2][3] - self.num_halo_cells + self.lattice_velocity_integers[2][top_index] if self.dimension == 3 else 1,
             ]
             wall_velocity_projection = torch.einsum("dNML,d->NML", velocity_slice, self.lattice_velocity_const[:, top_index])
-            weight = self.lattice_weights[top_index]
+            weight = self.lattice_weights_const[top_index]
             population[
                 opposite_index,
                 self.access_indices[0][1]:
@@ -398,7 +399,7 @@ class OutletBoundaryUpdate(nn.Module):
                 self.access_indices[2][1] + self.num_halo_cells + self.lattice_velocity_integers[2][bottom_index] if self.dimension == 3 else 1,
             ]
             wall_velocity_projection = torch.einsum("dNML,d->NML", velocity_slice, self.lattice_velocity_const[:, bottom_index])
-            weight = self.lattice_weights[bottom_index]
+            weight = self.lattice_weights_const[bottom_index]
             population[
                 opposite_index,
                 self.access_indices[0][1]:

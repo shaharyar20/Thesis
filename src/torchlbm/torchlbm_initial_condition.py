@@ -80,7 +80,18 @@ class TorchlbmInitialCondition(metaclass=abc.ABCMeta):
         """
         return None
 
-    def get_initial_particles(self) -> List[torch.Tensor]:
-        """In case immersed-boundary treatment is active, it returns the nodes of an immersed-boundary mesh as a tensor with the shape (N, 3),
-        where N are the number of immersed-boundary nodes an 3 is the dimension. Otherwise, it returns None."""
-        return []
+    def get_curve_function(self, X, Y, Z):
+        """Returns a function f(x, y) that defines the boundary as f(x, y, z) = 0.
+
+        Args:
+            X (torch.Tensor): The X coordinate as a (Tx, Ty, Tz) tensor,
+                              where Tx, Ty, and Tz denote the total number of the computational domain.
+            Y (torch.Tensor): The Y coordinate as a (Tx, Ty, Tz) tensor,
+                              where Tx, Ty, and Tz denote the total number of the computational domain.
+            Z (torch.Tensor): The Z coordinate as a (Tx, Ty, Tz) tensor,
+                              where Tx, Ty, and Tz denote the total number of the computational domain.
+
+        Returns:
+            function: A function f(x, y) that defines the immersed boundary as f(x, y) = 0.
+        """
+        return None

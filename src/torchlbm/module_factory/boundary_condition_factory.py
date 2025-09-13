@@ -7,7 +7,9 @@ from torchlbm.boundaries.periodic_boundary_update import PeriodicBoundaryUpdate
 from torchlbm.boundaries.wall_boundary_update import WallBoundaryUpdate
 from torchlbm.boundaries.inlet_boundary_update import InletBoundaryUpdate
 from torchlbm.boundaries.outlet_boundary_condition import OutletBoundaryUpdate
-from torchlbm.boundaries.bounce_back_boundary_update import BounceBackBoundaryUpdate
+from torchlbm.boundaries.fullway_bounce_back_boundary_update import FullwayBounceBackBoundaryUpdate
+from torchlbm.boundaries.halfway_bounce_back_boundary_update import HalfwayBounceBackBoundaryUpdate
+from torchlbm.boundaries.interpolated_bounce_back_boundary_update import InterpolatedBounceBackBoundaryUpdate
 from torchlbm.boundaries.zero_gradient_boundary_update import ZeroGradientBoundaryUpdate
 from torchlbm.boundaries.time_space_dependent_wall_boundary_update import TimeSpaceDependentWallBoundaryUpdate
 
@@ -521,7 +523,7 @@ def get_zero_gradient_boundary_module(state: TorchlbmState) -> ZeroGradientBound
     )
 
 
-def get_bounce_back_boundary_module(state: TorchlbmState) -> BounceBackBoundaryUpdate:
+def get_bounce_back_boundary_module(state: TorchlbmState) -> FullwayBounceBackBoundaryUpdate:
     """Factory function for a bounce back boundary update object.
 
     Args:
@@ -530,6 +532,22 @@ def get_bounce_back_boundary_module(state: TorchlbmState) -> BounceBackBoundaryU
     Returns:
         BounceBackBoundaryUpdate: The created object.
     """
-    return BounceBackBoundaryUpdate(
-        opposite_lattice_indices=state.lattice.opposite_lattice_indices(),
-    )
+    if state.torchlbm_setup["Domain"]["BoundaryConditions"]["BounceBackType"].value == "Halfway":
+        return HalfwayBounceBackBoundaryUpdate(
+            opposite_lattice_indices=state.lattice.opposite_lattice_indices(),
+            boundary_indices=state.boundary_indices,
+            opp_boundary_indices=state.opp_boundary_indices,
+        )
+    elif state.torchlbm_setup["Domain"]["BoundaryConditions"]["BounceBackType"].value == "Fullway":
+        return FullwayBounceBackBoundaryUpdate(
+            opposite_lattice_indices=state.lattice.opposite_lattice_indices(),
+        )
+    elif state.torchlbm_setup["Domain"]["BoundaryConditions"]["BounceBackType"].value == "Interpolated":
+        return InterpolatedBounceBackBoundaryUpdate(
+            opposite_lattice_indices=state.lattice.opposite_lattice_indices(),
+            ibb_factors1=state.ibb_factors1,
+            ibb_factors2=state.ibb_factors2,
+            boundary_indices=state.boundary_indices,
+            opp_boundary_indices=state.opp_boundary_indices,
+            additional_indices=state.additional_indices,
+        )

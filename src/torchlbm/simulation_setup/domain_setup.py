@@ -17,6 +17,9 @@ def boundary_conditions():
 def dimensions():
     return ["1D", "2D", "3D"]
 
+def bounce_back_implementations():
+    return ["Fullway", "Halfway", "Interpolated"]
+
 
 class DomainSetup(SetupSet):
     """The DomainSetup gives all information that are used in the domain block of an Alpaca inputfile.
@@ -118,6 +121,7 @@ class DomainSetup(SetupSet):
                             SetupTag("OutletDensity", 1.0, False, FloatConverter()),
                         ],
                     ),
+                    SetupTag("BounceBackType", "Fullway", False, StringConverter(bounce_back_implementations(), False)),
                 ],
             ),
         ]
