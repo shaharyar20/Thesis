@@ -55,7 +55,7 @@ def find_intersection(f_list, x1, y1, z1, x2, y2, z2, tol=1e-6, max_iter=50):
         
         intersections.append((t_int.item(), x_int.item(), y_int.item(), z_int.item()))
 
-    print(f"Intersections found: {intersections}")
+    # print(f"Intersections found: {intersections}")
     if intersections:
         intersections.sort(key=lambda tup: tup[0]) 
         t_int, x_int, y_int, z_int = intersections[0]

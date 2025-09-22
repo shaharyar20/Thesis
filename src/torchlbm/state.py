@@ -14,7 +14,8 @@ from torchlbm.node_data import NodeData, Distributions, Moments
 from torchlbm.thermal_node_data import ThermalNodeData, ThermalDistributions, ThermalMoments
 from torchlbm.unit_converter import UnitConverter
 from torchlbm.logger import Logger
-from torchlbm.boundaries.intersection import find_intersection
+from torchlbm.boundaries.bounce_back_utils.intersection import find_intersection
+from torchlbm.boundaries.bounce_back_utils.mask_from_stl import generate_bounce_back_mask_from_stl
 
 
 def get_meshgrid_for_node(number_nodes: List[int], lattice_distance: float, cells_per_node: int, num_halo_cells: int, dimension: int) -> List[torch.Tensor]:
@@ -205,6 +206,12 @@ class TorchlbmState:
         elif self.torchlbm_setup["InitialCondition"]["ReadInitialFieldsFromPyTorchFiles"].value:
             bounce_back_mask_from_pt = torch.load(self.torchlbm_setup["InitialCondition"]["PyTorchFields"]["BounceBackMask"].value)
             initial_bounce_back_mask[start[0] : end[0], start[1] : end[1], start[2] : end[2]] = bounce_back_mask_from_pt
+        elif self.torchlbm_setup["InitialCondition"]["ReadInitialMeshfromSTL"].value:
+            initial_bounce_back_mask = generate_bounce_back_mask_from_stl(
+                self.torchlbm_setup["InitialCondition"]["STLFilePath"].value,
+                meshgrid_for_node,
+                num_halo_cells,
+            )
         else:
             initial_bounce_back_mask = initial_condition.get_bounce_back_mask(meshgrid_for_node[0], meshgrid_for_node[1], meshgrid_for_node[2])
 
