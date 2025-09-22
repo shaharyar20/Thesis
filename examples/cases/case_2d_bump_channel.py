@@ -29,12 +29,17 @@ class BumpChannelInitialCondition(TorchlbmInitialCondition):
         mask = torch.zeros_like(X).bool()
 
         # mask = torch.where((0.5 + 0.15*((1-torch.cos(2*torch.pi*X/2.0))) - Y) < 0, 1, mask)
-        mask = torch.where((0.5 +  0.3*torch.sin(torch.pi*X/4.0) - Y) < 0, 1, mask)
+        mask = torch.where((0.6 +  0.3*torch.sin(torch.pi*X/4.0) - Y) < 0, 1, mask)
+        mask = torch.where((0.1 + 0.3*torch.sin(torch.pi*X/4.0) - Y) > 0, 1, mask)
         # mask = torch.where(torch.sqrt((X-0.5)*(X-0.5)+(Y-0.5)*(Y-0.5)) < 0.1, 1, mask)
         return mask
     
     def get_curve_function(self, X, Y, Z):
-        return 0.5 + 0.3*torch.sin(torch.pi*X/4.0) - Y
+        # return 0.5 + 0.3*torch.sin(torch.pi*X/4.0) - Y
+        top = lambda x, y, z: 0.6 + 0.3*torch.sin(torch.pi*x/4.0) - y
+        bottom = lambda x, y, z: 0.1 + 0.3*torch.sin(torch.pi*x/4.0) - y
+
+        return [top, bottom]
 
 
 def main():
@@ -42,7 +47,7 @@ def main():
     simulation_setup = TorchlbmSetup("BumpChannel")
     simulation_setup["Domain"]["Dimension"].value = "2D"
     simulation_setup["Domain"]["NodeSize"].value = 1.0
-    simulation_setup["Domain"]["CellsPerNode"].value = 50
+    simulation_setup["Domain"]["CellsPerNode"].value = 80
     simulation_setup["Domain"]["NumHaloCells"].value = 1
     simulation_setup["Domain"]["NodeRatio"].value = [2, 1, 1]
     simulation_setup["Domain"]["BoundaryConditions"]["East"]["Type"].value = "Outlet"
@@ -55,7 +60,7 @@ def main():
     simulation_setup["Domain"]["BoundaryConditions"]["South"]["WallVelocity"].value = [0.0, 0.0, 0.0]
     simulation_setup["Domain"]["BoundaryConditions"]["Top"]["Type"].value = "Periodic"
     simulation_setup["Domain"]["BoundaryConditions"]["Bottom"]["Type"].value = "Periodic"
-    simulation_setup["Domain"]["BoundaryConditions"]["BounceBackType"].value = "Interpolated"
+    simulation_setup["Domain"]["BoundaryConditions"]["BounceBackType"].value = "Halfway"
 
     # simulation_setup["InitialCondition"]["ReadInitialConditionFromYaml"].value = False
     # simulation_setup["InitialCondition"]["Density"].value = "1.0"
@@ -71,9 +76,9 @@ def main():
     simulation_setup["Output"]["Active"].value = True
     # simulation_setup["Output"]["ModulusArtifactsActive"].value = True
     # simulation_setup["Output"]["PrintTimingInformation"].value = False
-    simulation_setup["Output"]["OutputTimeInterval"].value = 20.0
+    simulation_setup["Output"]["OutputTimeInterval"].value = 10.0
     simulation_setup["Output"]["Velocity"]["Active"].value = True
-    simulation_setup["Output"]["Velocity"]["ValueBounds"].value = [0.0, 1.25]
+    simulation_setup["Output"]["Velocity"]["ValueBounds"].value = [0.0, 1.5]
     simulation_setup["Output"]["Velocity"]["UseValueBounds"].value = True
     simulation_setup["Output"]["Velocity"]["Types"].value = ["PyTorch", "Picture"]
     simulation_setup["Output"]["Density"]["Active"].value = True

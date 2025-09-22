@@ -431,7 +431,8 @@ class TorchlbmState:
                         x1, y1, z1 = grid[:, index[0], index[1], index[2]]
                         x2, y2, z2 = grid[:, index[0] + directions_to_check[0][i], index[1] + directions_to_check[1][i], index[2]]
                         # print(x1, y1, x2, y2)
-                        intersection, _, _, _ = find_intersection(initial_condition.get_curve_function, 
+                        curve_functions = initial_condition.get_curve_function(grid[0], grid[1], grid[2])
+                        intersection, _, _, _ = find_intersection(curve_functions, 
                                                                x1, y1, z1, x2, y2, z2)
                         # print(intersection)
                         # additional_index = index.clone()
