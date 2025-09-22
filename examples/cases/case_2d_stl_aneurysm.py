@@ -33,7 +33,7 @@ def main():
     simulation_setup = TorchlbmSetup("AneurysmSTL")
     simulation_setup["Domain"]["Dimension"].value = "2D"
     simulation_setup["Domain"]["NodeSize"].value = 1.0
-    simulation_setup["Domain"]["CellsPerNode"].value = 100
+    simulation_setup["Domain"]["CellsPerNode"].value = 160
     simulation_setup["Domain"]["NumHaloCells"].value = 1
     simulation_setup["Domain"]["NodeRatio"].value = [1, 1, 1]
     simulation_setup["Domain"]["BoundaryConditions"]["East"]["Type"].value = "Outlet"
@@ -46,10 +46,10 @@ def main():
     simulation_setup["Domain"]["BoundaryConditions"]["South"]["WallVelocity"].value = [0.0, 0.0, 0.0]
     simulation_setup["Domain"]["BoundaryConditions"]["Top"]["Type"].value = "Periodic"
     simulation_setup["Domain"]["BoundaryConditions"]["Bottom"]["Type"].value = "Periodic"
-    simulation_setup["Domain"]["BoundaryConditions"]["BounceBackType"].value = "Halfway"
+    simulation_setup["Domain"]["BoundaryConditions"]["BounceBackType"].value = "Interpolated"
 
     simulation_setup["InitialCondition"]["ReadInitialMeshfromSTL"].value = True
-    simulation_setup["InitialCondition"]["STLFilePath"].value = "/local/disk1/work/codes/geo_code/output/RandomVessel_2025-09-13_23:38:32/STL/vessel_1.stl" #"/local/disk1/work/codes/geo_code/output/RandomVessel_2025-09-14_00:18:11/STL/vessel_1.stl"
+    simulation_setup["InitialCondition"]["STLFilePath"].value = "/local/disk1/work/codes/geo_code/output/RandomVessel_2025-09-13_23:44:52/STL/vessel_1.stl" #"/local/disk1/work/codes/geo_code/output/RandomVessel_2025-09-14_00:18:11/STL/vessel_1.stl"
 
     # simulation_setup["InitialCondition"]["ReadInitialConditionFromYaml"].value = False
     # simulation_setup["InitialCondition"]["Density"].value = "1.0"
@@ -65,7 +65,7 @@ def main():
     simulation_setup["Output"]["Active"].value = True
     # simulation_setup["Output"]["ModulusArtifactsActive"].value = True
     # simulation_setup["Output"]["PrintTimingInformation"].value = False
-    simulation_setup["Output"]["OutputTimeInterval"].value = 0.1
+    simulation_setup["Output"]["OutputTimeInterval"].value = 5.0
     simulation_setup["Output"]["Velocity"]["Active"].value = True
     simulation_setup["Output"]["Velocity"]["ValueBounds"].value = [0.0, 1.8]
     simulation_setup["Output"]["Velocity"]["UseValueBounds"].value = False
@@ -76,7 +76,7 @@ def main():
     simulation_setup["Output"]["BounceBackMask"]["Types"].value = ["PyTorch", "Picture"]
 
     simulation_setup["Physics"]["MachNumber"].value = 0.1
-    simulation_setup["Physics"]["EndTime"].value = 1.0
+    simulation_setup["Physics"]["EndTime"].value = 15.0
     simulation_setup["Physics"]["CharacteristicVelocityPu"].value = 1.0
     simulation_setup["Physics"]["KinematicViscosityPu"].value = 0.05 # Make tau 1
     simulation_setup["Physics"]["Precision"].value = "Single"

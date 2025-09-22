@@ -51,4 +51,4 @@ def generate_bounce_back_mask_from_stl(stl_path: str, meshgrid: torch.Tensor, nu
     print(mask.sum().item(), mask.numel())
     # print(a)
 
-    return mask
+    return mask, mesh

@@ -1,5 +1,6 @@
 import torch
 from typing import List
+import numpy as np
 
 from torchlbm.core.equilibrium.equilibrium import EquilibriumCalculationModule
 from torchlbm.simulation_setup.torchlbm_setup import TorchlbmSetup
@@ -16,6 +17,7 @@ from torchlbm.unit_converter import UnitConverter
 from torchlbm.logger import Logger
 from torchlbm.boundaries.bounce_back_utils.intersection import find_intersection
 from torchlbm.boundaries.bounce_back_utils.mask_from_stl import generate_bounce_back_mask_from_stl
+from torchlbm.boundaries.bounce_back_utils.segment_mesh_intersection import segment_mesh_intersection
 
 
 def get_meshgrid_for_node(number_nodes: List[int], lattice_distance: float, cells_per_node: int, num_halo_cells: int, dimension: int) -> List[torch.Tensor]:
@@ -207,7 +209,7 @@ class TorchlbmState:
             bounce_back_mask_from_pt = torch.load(self.torchlbm_setup["InitialCondition"]["PyTorchFields"]["BounceBackMask"].value)
             initial_bounce_back_mask[start[0] : end[0], start[1] : end[1], start[2] : end[2]] = bounce_back_mask_from_pt
         elif self.torchlbm_setup["InitialCondition"]["ReadInitialMeshfromSTL"].value:
-            initial_bounce_back_mask = generate_bounce_back_mask_from_stl(
+            initial_bounce_back_mask, stl_mesh = generate_bounce_back_mask_from_stl(
                 self.torchlbm_setup["InitialCondition"]["STLFilePath"].value,
                 meshgrid_for_node,
                 num_halo_cells,
@@ -438,9 +440,20 @@ class TorchlbmState:
                         x1, y1, z1 = grid[:, index[0], index[1], index[2]]
                         x2, y2, z2 = grid[:, index[0] + directions_to_check[0][i], index[1] + directions_to_check[1][i], index[2]]
                         # print(x1, y1, x2, y2)
-                        curve_functions = initial_condition.get_curve_function(grid[0], grid[1], grid[2])
-                        intersection, _, _, _ = find_intersection(curve_functions, 
-                                                               x1, y1, z1, x2, y2, z2)
+                        if self.torchlbm_setup["InitialCondition"]["ReadInitialMeshfromSTL"].value:
+                            # print("Using STL for intersection")
+                            # print(directions_to_check[0][i], directions_to_check[1][i])
+                            intersection = segment_mesh_intersection(
+                                mesh=stl_mesh,
+                                p0=np.array([x1.item(), y1.item(), z1.item()]),
+                                p1=np.array([x2.item(), y2.item(), z2.item()]),
+                            )
+                            print(intersection)
+                        else:
+
+                            curve_functions = initial_condition.get_curve_function(grid[0], grid[1], grid[2])
+                            intersection, _, _, _ = find_intersection(curve_functions, 
+                                                                x1, y1, z1, x2, y2, z2)
                         # print(intersection)
                         # additional_index = index.clone()
                         if intersection < 0.5:
@@ -487,6 +500,7 @@ class TorchlbmState:
                 self.additional_indices = torch.cat(self.additional_indices, dim=0)
                 self.ibb_factors1 = torch.cat(self.ibb_factors1, dim=0)
                 self.ibb_factors2 = torch.cat(self.ibb_factors2, dim=0)
+            # print(a)
 
 
     def mps(self) -> None:
