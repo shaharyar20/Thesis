@@ -16,6 +16,9 @@ class CarnahanSterlingPseudopotentialCalculationModule(nn.Module):
         self,
         reduced_temperature: float,
         solid_density: float,
+        a: float,
+        b: float,
+        R: float,
         solid_temperature = None,
     ) -> None:
         """Constructor of the module. The constructor is usually called from a factory function.
@@ -31,8 +34,12 @@ class CarnahanSterlingPseudopotentialCalculationModule(nn.Module):
         self.G = -1.0
         self.reduced_temperature = reduced_temperature
         self.solid_density = solid_density
+        self.a = a
+        self.b = b
+        self.R = R
+        self.critical_temperature = self.a / (10.601 * self.R)
         if solid_temperature is None:
-            self.solid_temperature = self.reduced_temperature*0.09433
+            self.solid_temperature = self.reduced_temperature*self.critical_temperature
         else:
             self.solid_temperature = solid_temperature
 
@@ -47,11 +54,20 @@ class CarnahanSterlingPseudopotentialCalculationModule(nn.Module):
             torch.Tensor: The calculated pseudopotential.
         """
 
-        density_squared = density**2
+        # density_squared = density**2
         if temperature is None:
-            temperature = self.reduced_temperature*0.09433
+            temperature = self.reduced_temperature*self.critical_temperature
 
-        eos_nonideal = density*(temperature*(1 + (4*density - 2*density_squared)/(torch.ones_like(density) - density)**3) - density - 1.0/3.0)
+        theta = self.b * density / 4.0
+
+        eos_nonideal = density * (self.R * temperature * (1 + (4 * theta - 2 * theta**2) / (torch.ones_like(theta) - theta)**3) - self.a*density - 1.0 / 3.0)
+        # test = eos_nonideal + density / 3.0
+        # print(f"EOS Nonideal: {test.min()} {test.max()}")
+        # eos_nonideal2 = density*(temperature*(1 + (4*density - 2*density_squared)/(torch.ones_like(density) - density)**3) - density - 1.0/3.0)
+        # Check if equal
+        # print(torch.allclose(eos_nonideal1, eos_nonideal2))
+        # print(torch.max(torch.abs(eos_nonideal1 - eos_nonideal2)))
+        # print(a)
         pseudopotential = torch.sqrt(torch.abs(6*eos_nonideal/self.G))
 
         if bounce_back_mask is not None:

@@ -36,4 +36,9 @@ def get_forcing_module(state: TorchlbmState) -> ShanChenForcingModule:
             force_vector=force_vector,
             lattice_velocities=state.lattice.lattice_velocities(),
             lattice_weights=state.lattice.lattice_weights(),
+            n_discrete_velocities=state.lattice.n_discrete_velocities if state.torchlbm_setup["Algorithm"]["Operators"]["Collision"]["Type"].value == "MRT" else None,
+            free_parameter_indices=state.lattice.free_parameter_indices() if state.torchlbm_setup["Algorithm"]["Operators"]["Collision"]["Type"].value == "MRT" else None,
+            viscosity_indices=state.lattice.viscosity_indices() if state.torchlbm_setup["Algorithm"]["Operators"]["Collision"]["Type"].value == "MRT" else None,
+            free_parameters=state.torchlbm_setup["Algorithm"]["Operators"]["Collision"]["MRT"]["FreeParameters"].value if state.torchlbm_setup["Algorithm"]["Operators"]["Collision"]["Type"].value == "MRT" else None,
+            my_population_to_momentum_transform=state.lattice.population_to_momentum_transform() if state.torchlbm_setup["Algorithm"]["Operators"]["Collision"]["Type"].value == "MRT" else None,
         )

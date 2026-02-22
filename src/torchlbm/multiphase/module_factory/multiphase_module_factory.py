@@ -26,6 +26,9 @@ def get_pseudopotential_module(state: TorchlbmState) -> ShanChenPseudopotentialC
         return CarnahanSterlingPseudopotentialCalculationModule(
             reduced_temperature=state.torchlbm_setup["Multiphase"]["CarnahanStarlingEOS"]["ReducedTemperature"].value,
             solid_density=state.torchlbm_setup["Multiphase"]["SolidDensity"].value,
+            a=state.torchlbm_setup["Multiphase"]["CarnahanStarlingEOS"]["a"].value,
+            b=state.torchlbm_setup["Multiphase"]["CarnahanStarlingEOS"]["b"].value,
+            R=state.torchlbm_setup["Multiphase"]["CarnahanStarlingEOS"]["R"].value,
             solid_temperature=state.torchlbm_setup["Multiphase"]["SolidTemperature"].value if state.torchlbm_setup["Thermal"]["Active"].value == True else None,
         )
     
@@ -74,6 +77,10 @@ def get_multiphase_forcing_module(state: TorchlbmState) -> ForceCalculationMulti
         n_discrete_velocities=state.lattice.number_of_discrete_velocities(),
         is_gravity_active=state.torchlbm_setup["Multiphase"]["Gravity"]["Active"].value,
         gravity_value=gravity_value,
+        free_parameter_indices=state.lattice.free_parameter_indices() if state.torchlbm_setup["Algorithm"]["Operators"]["Collision"]["Type"].value == "MRT" else None,
+        viscosity_indices=state.lattice.viscosity_indices() if state.torchlbm_setup["Algorithm"]["Operators"]["Collision"]["Type"].value == "MRT" else None,
+        free_parameters=state.torchlbm_setup["Algorithm"]["Operators"]["Collision"]["MRT"]["FreeParameters"].value if state.torchlbm_setup["Algorithm"]["Operators"]["Collision"]["Type"].value == "MRT" else None,
+        sigma=state.torchlbm_setup["Multiphase"]["MRTTuningParamater"].value if state.torchlbm_setup["Algorithm"]["Operators"]["Collision"]["Type"].value == "MRT" else None,
     )
 
 def get_phase_change_module(state: TorchlbmState) -> CarnahanSterlingThermalCalculationModule:

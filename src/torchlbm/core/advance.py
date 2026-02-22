@@ -154,13 +154,15 @@ class AdvanceModule(nn.Module):
         """
         if node_data.moments.volume_force_field is not None:
             node_data.moments.volume_force_field = torch.zeros_like(node_data.moments.volume_force_field)
+        if node_data.distributions.collision_source_term is not None:
+            node_data.distributions.collision_source_term = torch.zeros_like(node_data.distributions.collision_source_term)
 
         if self.is_multiphase_active:
             pseudopotential = self.pseudopotential_module(node_data.moments.density, node_data.bounce_back_mask)
-            node_data.moments.volume_force_field = self.multiphase_forcing_module(pseudopotential, node_data.moments.volume_force_field, node_data.moments.density)
+            node_data.moments.volume_force_field, node_data.distributions.collision_source_term = self.multiphase_forcing_module(pseudopotential, node_data.moments.volume_force_field,node_data.distributions.collision_source_term, node_data.relaxation_omega, node_data.moments.density)
 
         if self.is_forcing_active:
-            node_data.moments.forcing_velocity, node_data.moments.volume_force_field, node_data.distributions.collision_source_term = self.forcing_module(node_data.moments.volume_force_field, node_data.moments.density, node_data.moments.velocity, node_data.relaxation_omega)
+            node_data.moments.forcing_velocity, node_data.moments.volume_force_field, node_data.distributions.collision_source_term = self.forcing_module(node_data.moments.volume_force_field, node_data.distributions.collision_source_term, node_data.moments.density, node_data.moments.velocity, node_data.relaxation_omega)
 
         node_data.distributions.new_population = self.equilibrium_module(node_data.moments.density, node_data.moments.velocity, node_data.moments.forcing_velocity)
 
