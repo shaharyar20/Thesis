@@ -43,16 +43,16 @@ def pyg_dataset_memory_usage(dataset, num_samples=None):
 
 
 
-dataset_path = 'data/entropic_10k_gs2_exp3_5_u05'
+dataset_path = 'data/entropic_10k_gs2_smallomegarange_exp4_u08'
 num_samples = 1000000
 graph_structure = 2
-omega_min = 0.8
-omega_max = 1.9999
-omega_exp = 3.5
+omega_min = 1.5
+omega_max = 1 / 0.500001
+omega_exp = 4
 normalize = False
-rho_min = 0.95
-rho_max = 1.05
-u_abs_max = 0.05
+rho_min = 0.98
+rho_max = 1.02
+u_abs_max = 0.08
 sigma_max = 1e-3
 random_seed = None
 

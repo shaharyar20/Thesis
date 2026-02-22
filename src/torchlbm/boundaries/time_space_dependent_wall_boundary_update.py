@@ -423,7 +423,7 @@ class TimeSpaceDependentWallBoundaryUpdate(nn.Module):
         return population
     # fmt: on
 
-    def forward(self, node_data: NodeData) -> NodeData:
+    def forward(self, old_population: torch.Tensor, density: torch.Tensor, velocity: torch.Tensor, bounce_back_mask: torch.Tensor) -> NodeData:
         """Performs the wall boundary update as the forwards pass of the PyTorch module.
 
         Args:
@@ -435,33 +435,33 @@ class TimeSpaceDependentWallBoundaryUpdate(nn.Module):
         """
         if self.is_east_time_space_dependent_wall:
             east_wall_velocity = self.time_space_dependent_wall_velocity(BoundaryLocation.East)
-            node_data.distributions.old_population = self.update_east_wall(
-                node_data.distributions.old_population, node_data.moments.density, east_wall_velocity
+            old_population = self.update_east_wall(
+                old_population, density, east_wall_velocity
             )
         if self.is_west_time_space_dependent_wall:
             west_wall_velocity = self.time_space_dependent_wall_velocity(BoundaryLocation.West)
-            node_data.distributions.old_population = self.update_west_wall(
-                node_data.distributions.old_population, node_data.moments.density, west_wall_velocity
+            old_population = self.update_west_wall(
+                old_population, density, west_wall_velocity
             )
 
         if self.is_north_time_space_dependent_wall:
             north_wall_velocity = self.time_space_dependent_wall_velocity(BoundaryLocation.North)
-            node_data.distributions.old_population = self.update_north_wall(
-                node_data.distributions.old_population, node_data.moments.density, north_wall_velocity
+            old_population = self.update_north_wall(
+                old_population, density, north_wall_velocity
             )
         if self.is_south_time_space_dependent_wall:
             south_wall_velocity = self.time_space_dependent_wall_velocity(BoundaryLocation.South)
-            node_data.distributions.old_population = self.update_south_wall(
-                node_data.distributions.old_population, node_data.moments.density, south_wall_velocity
+            old_population = self.update_south_wall(
+                old_population, density, south_wall_velocity
             )
 
         if self.is_top_time_space_dependent_wall:
             top_wall_velocity = self.time_space_dependent_wall_velocity(BoundaryLocation.Top)
-            node_data.distributions.old_population = self.update_top_wall(node_data.distributions.old_population, node_data.moments.density, top_wall_velocity)
+            old_population = self.update_top_wall(old_population, density, top_wall_velocity)
         if self.is_bottom_time_space_dependent_wall:
             bottom_wall_velocity = self.time_space_dependent_wall_velocity(BoundaryLocation.Bottom)
-            node_data.distributions.old_population = self.update_bottom_wall(
-                node_data.distributions.old_population, node_data.moments.density, bottom_wall_velocity
+            old_population = self.update_bottom_wall(
+                old_population, density, bottom_wall_velocity
             )
 
-        return node_data
+        return old_population

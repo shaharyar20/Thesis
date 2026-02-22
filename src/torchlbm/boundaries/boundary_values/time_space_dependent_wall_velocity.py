@@ -210,9 +210,11 @@ class TimeSpaceDependentWallVelocity(nn.Module):
         radius = cell_size * 47 * 0.5
 
         # velocity_scaling_factor = 1.0 - torch.pow((self.west_meshgrid_const[1] - radius - offset) / radius, 2)  ####1-((x-0.0575-0.035)/0.06)^2
-
+        H = 4.1 * 50
+        U_m = 0.02 * 3 / 2
+        velocity_x = 4 * U_m * Y * (H - Y) / (H * H) 
         # print(velocity_scaling_factor.shape)
-        velocity_x = 1.5 * velocity_scaling_factor * velocity_lattice_units
+        # velocity_x = 1.5 * velocity_scaling_factor * velocity_lattice_units
         velocity_y = torch.zeros_like(velocity_x)
         velocity_z = torch.zeros_like(velocity_x)
         velocity_x = velocity_x.unsqueeze(0)

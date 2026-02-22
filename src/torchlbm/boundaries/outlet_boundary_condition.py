@@ -127,10 +127,20 @@ class OutletBoundaryUpdate(nn.Module):
                           L is the number of discrete velocities of the underlying velocity set.
         """
         outlet_density = self.east_outlet_density
-        velocity_slice = velocity[
+        # print(self.access_indices[0][2] - self.num_halo_cells - 1, self.access_indices[0][3] - self.num_halo_cells)
+        # print(velocity[0, self.access_indices[0][3], :, :])
+        velocity_slice = 1.5 * velocity[
             :,
             self.access_indices[0][2] - self.num_halo_cells:
             self.access_indices[0][3] - self.num_halo_cells,
+            self.access_indices[1][1] if self.dimension != 1 else 0:
+            self.access_indices[1][2] if self.dimension != 1 else 1,
+            self.access_indices[2][1] if self.dimension == 3 else 0:
+            self.access_indices[2][2] if self.dimension == 3 else 1,
+        ] - 0.5 * velocity[
+            :,
+            self.access_indices[0][2] - self.num_halo_cells - 1:
+            self.access_indices[0][3] - self.num_halo_cells - 1,
             self.access_indices[1][1] if self.dimension != 1 else 0:
             self.access_indices[1][2] if self.dimension != 1 else 1,
             self.access_indices[2][1] if self.dimension == 3 else 0:
@@ -148,6 +158,15 @@ class OutletBoundaryUpdate(nn.Module):
                 self.access_indices[2][1] + self.lattice_velocity_integers[2][east_index] if self.dimension == 3 else 0:
                 self.access_indices[2][2] + self.lattice_velocity_integers[2][east_index] if self.dimension == 3 else 1,
             ]
+            # f_slice = population[
+            #     east_index,
+            #     self.access_indices[0][2] - self.num_halo_cells:
+            #     self.access_indices[0][3] - self.num_halo_cells,
+            #     self.access_indices[1][1] if self.dimension != 1 else 0:
+            #     self.access_indices[1][2] if self.dimension != 1 else 1,
+            #     self.access_indices[2][1] if self.dimension == 3 else 0:
+            #     self.access_indices[2][2] if self.dimension == 3 else 1,
+            # ]
             wall_velocity_projection = torch.einsum("dNML,d->NML", velocity_slice, self.lattice_velocity_const[:, east_index])
             weight = self.lattice_weights_const[east_index]
             population[

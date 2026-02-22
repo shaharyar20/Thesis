@@ -21,19 +21,20 @@ from mlbm.distribution_learning.trial_networks.gcn1 import GraphCollisionNetwork
 from mlbm.distribution_learning.trial_networks.gcn2 import GraphCollisionNetwork2
 from mlbm.distribution_learning.trial_networks.gcn3 import GraphCollisionNetwork3
 from mlbm.distribution_learning.trial_networks.gcn4 import GraphCollisionNetwork4
+from mlbm.distribution_learning.trial_networks.gcn5 import GraphCollisionNetwork5
 
 # torch.autograd.set_detect_anomaly(True)
 
 # torch.set_float32_matmul_precision('high')
 
 
-dataset_path = './data/entropic_10k_gs2_exp3_5_u05'
-model_path = Path("./models/gcn4_entropic_10k_gs2_exp3_5_u05.pth")
+dataset_path = './data/entropic_10k_gs2_smallomegarange_exp4_u08'
+model_path = Path("./models/gcn4_entropic_10k_gs2_smallomegarange_withoutprecolres_exp4_u08_final.pth")
 load_existing_model = False
 train_val_test_split = {"train":0.8, "val":0.1, "test":0.1}
 
 hyperparameter_options = {
-    "emb_dim": (9, 20),
+    "emb_dim": (15, 20),
     "bias": [True, False],
     "residual_connection": [True, False],
     "pre_collision_residual": [True, False],
@@ -75,8 +76,8 @@ def sample_hyperparameters():
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 batch_size = 128
-epochs = 140
-num_trials = 30
+epochs = 200
+num_trials = 50
 results = []
 
 if __name__ == "__main__":
@@ -112,7 +113,7 @@ if __name__ == "__main__":
             output_dim=train_dataset[0].y.shape[1],
         )
 
-        logger = MLFlowLogger(experiment_name="LargerModelSmallerVelocity")
+        logger = MLFlowLogger(experiment_name="SmallOmegaRangeExpWithoutPreColResVel08Final")
 
         trainer = pl.Trainer(
             callbacks=[

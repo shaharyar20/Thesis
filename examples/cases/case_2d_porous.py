@@ -88,7 +88,7 @@ def main():
     simulation_setup["Lattice"]["NSE"]["2D"].value = "D2Q9"
     simulation_setup["Lattice"]["NSE"]["3D"].value = "D3Q19"
 
-    simulation_setup["Algorithm"]["Operators"]["EquilibriumCalculation"]["Type"].value = "Classical"
+    # simulation_setup["Algorithm"]["Operators"]["EquilibriumCalculation"]["Type"].value = "Classical"
     simulation_setup["Algorithm"]["Operators"]["Collision"]["Type"].value = "SRT"
 
     check_torchlbm_setup(simulation_setup)

@@ -113,6 +113,19 @@ class Collision2DGraphDataset(Dataset):
             lattice_weights=lattice.lattice_weights(),
         )
 
+        # tau_min = 1.0 / omega_max
+        # tau_max = 1.0 / omega_min
+        # delta_min = tau_min - 0.5
+        # delta_max = tau_max - 0.5
+
+        # log_delta = torch.empty(self.num_samples, 1, 1).uniform_(
+        #     math.log(delta_min),
+        #     math.log(delta_max),
+        # )
+        # delta = torch.exp(log_delta)
+        # tau = delta + 0.5
+        # self.relaxation_omega = 1.0 / tau
+
         # self.relaxation_omega = torch.rand(self.num_samples, 1, 1) * (omega_max - omega_min) + omega_min
         self.relaxation_omega = omega_max - (omega_max - omega_min) * (1 - torch.rand(self.num_samples, 1, 1))**omega_exp
 

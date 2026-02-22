@@ -5,6 +5,7 @@ from torchlbm.core.collision_models.mrt_collision import MRTCollisionModule
 from torchlbm.core.collision_models.entropic_mrt_collision import EntropicMRTCollisionModule
 from torchlbm.core.collision_models.gnn_collision import GNNCollisionModule
 from mlbm.distribution_learning.trial_networks.gcn4 import GraphCollisionNetwork4
+from mlbm.distribution_learning.trial_networks.gcn5 import GraphCollisionNetwork5
 
 
 def get_collision_module(state: TorchlbmState) -> SRTCollisionModule:

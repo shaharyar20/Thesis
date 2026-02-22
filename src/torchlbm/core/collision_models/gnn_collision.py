@@ -44,6 +44,9 @@ class GNNCollisionModule(nn.Module):
         # print(a)
         Q, X, Y, Z = old_population.shape
         old_population = old_population.reshape(Q, -1).transpose(0, 1).unsqueeze(-1)
+        # relaxation_omega_input = torch.log(1.0 / relaxation_omega - 0.5)
+        # old_population = self.model(old_population, relaxation_omega_input.unsqueeze(-1)).squeeze(-1).transpose(0, 1).reshape(Q, X, Y, Z)
+
         old_population = self.model(old_population, relaxation_omega.unsqueeze(-1)).squeeze(-1).transpose(0, 1).reshape(Q, X, Y, Z)
 
         return old_population

@@ -9,9 +9,9 @@ from torchlbm.simulation_setup.torchlbm_setup import TorchlbmSetup, check_torchl
 from torchlbm.io_tools.output_writer import OutputWriter
 import torchlbm.standalone_operations.file_operations as file_o
 
-u = 0.05
+u = 0.06
 L = 129
-Re = 4000
+Re = 5000
 nu = u * L / Re
 
 class LidDrivenCavityInitialCondition(TorchlbmInitialCondition):
@@ -42,6 +42,8 @@ class LidDrivenCavityOutputWriter(OutputWriter):
         super().__init__(result_folder, logger, state)
         self.horizontal_velocity_centerline = None
         self.vertical_velocity_centerline = None
+        self.entropy_x = None
+        self.entropy_y = None
 
     def evaluate_quantities(self, state, timestamp):
         num_halos = state.torchlbm_setup["Domain"]["NumHaloCells"].value
@@ -50,11 +52,24 @@ class LidDrivenCavityOutputWriter(OutputWriter):
         self.horizontal_velocity_centerline = u_x.cpu().numpy()
         self.vertical_velocity_centerline = u_y.cpu().numpy()
 
+        f_i_x = state.node_data.distributions.old_population[:, (L-1)//2 + num_halos, num_halos:-num_halos, 0]
+        f_i_y = state.node_data.distributions.old_population[:, num_halos:-num_halos, (L-1)//2 + num_halos, 0]
+        w_i = torch.tensor(state.lattice.lattice_weights()).cuda()
+        # print(f_i_x.shape)
+        # print(torch.sum(-f_i_x * torch.log(f_i_x / w_i.unsqueeze(-1)), dim=0).shape)
+        self.entropy_x = torch.sum(-f_i_x * torch.log(f_i_x / w_i.unsqueeze(-1)), dim=0).cpu().numpy()
+        self.entropy_y = torch.sum(-f_i_y * torch.log(f_i_y / w_i.unsqueeze(-1)), dim=0).cpu().numpy()
+        # total_entropy_x = torch.sum(entropy_x).item() / L
+        # total_entropy_y = torch.sum(entropy_y).item() / L
+        # self.logger.info(f"Timestamp: {timestamp:.2f}, Total Entropy Centerline X: {entropy_x:.6f}, Total Entropy Centerline Y: {entropy_y:.6f}")
+
     def write_quantities(self, state):
         quantity_folder = self._result_folder.joinpath("quantities")
         file_o.create_folder(quantity_folder)
         np.save(quantity_folder.joinpath("horizontal_velocity_centerline.npy"), self.horizontal_velocity_centerline)
         np.save(quantity_folder.joinpath("vertical_velocity_centerline.npy"), self.vertical_velocity_centerline)
+        np.save(quantity_folder.joinpath("entropy_centerline_x.npy"), self.entropy_x)
+        np.save(quantity_folder.joinpath("entropy_centerline_y.npy"), self.entropy_y)
 
         # Plot the horizontal velocity centerline
         plt.figure()
@@ -78,23 +93,57 @@ class LidDrivenCavityOutputWriter(OutputWriter):
         plt.savefig(quantity_folder.joinpath("vertical_velocity_centerline.png"))
         plt.close()
 
+        # Plot the entropy centerline in x-direction
+        plt.figure()
+        plt.plot(self.entropy_x, label="Simulation")
+        plt.xlabel("y")
+        plt.ylabel("Entropy")
+        plt.title("Entropy Centerline X")
+        plt.legend()
+        plt.grid()
+        plt.savefig(quantity_folder.joinpath("entropy_centerline_x.png"))
+        plt.close()
+
+        # Plot the entropy centerline in y-direction
+        plt.figure()
+        plt.plot(self.entropy_y, label="Simulation")
+        plt.xlabel("x")
+        plt.ylabel("Entropy")
+        plt.title("Entropy Centerline Y")
+        plt.legend()
+        plt.grid()
+        plt.savefig(quantity_folder.joinpath("entropy_centerline_y.png"))
+        plt.close()
+
 
 def main():
 
-    simulation_setup = TorchlbmSetup("LidDrivenCavityOutput")
+    simulation_setup = TorchlbmSetup("LidDrivenCavityPrecision")
     simulation_setup["Domain"]["Dimension"].value = "2D"
     simulation_setup["Domain"]["NodeSize"].value = L
     simulation_setup["Domain"]["CellsPerNode"].value = L
     simulation_setup["Domain"]["NumHaloCells"].value = 1
     simulation_setup["Domain"]["NodeRatio"].value = [1, 1, 1]
-    simulation_setup["Domain"]["BoundaryConditions"]["East"]["Type"].value = "Wall"
-    simulation_setup["Domain"]["BoundaryConditions"]["East"]["WallVelocity"].value = [0.0, 0.0, 0.0]
-    simulation_setup["Domain"]["BoundaryConditions"]["West"]["Type"].value = "Wall"
-    simulation_setup["Domain"]["BoundaryConditions"]["West"]["WallVelocity"].value = [0.0, 0.0, 0.0]
-    simulation_setup["Domain"]["BoundaryConditions"]["North"]["Type"].value = "Wall"
-    simulation_setup["Domain"]["BoundaryConditions"]["North"]["WallVelocity"].value = [u, 0.0, 0.0]
-    simulation_setup["Domain"]["BoundaryConditions"]["South"]["Type"].value = "Wall"
-    simulation_setup["Domain"]["BoundaryConditions"]["South"]["WallVelocity"].value = [0.0, 0.0, 0.0]
+    # simulation_setup["Domain"]["BoundaryConditions"]["East"]["Type"].value = "Wall"
+    # simulation_setup["Domain"]["BoundaryConditions"]["East"]["WallVelocity"].value = [0.0, 0.0, 0.0]
+    simulation_setup["Domain"]["BoundaryConditions"]["East"]["Type"].value = "Equilibrium"
+    simulation_setup["Domain"]["BoundaryConditions"]["East"]["EquilibriumDensity"].value = 1.0
+    simulation_setup["Domain"]["BoundaryConditions"]["East"]["EquilibriumVelocity"].value = [0.0, 0.0, 0.0]
+    # simulation_setup["Domain"]["BoundaryConditions"]["West"]["Type"].value = "Wall"
+    # simulation_setup["Domain"]["BoundaryConditions"]["West"]["WallVelocity"].value = [0.0, 0.0, 0.0]
+    simulation_setup["Domain"]["BoundaryConditions"]["West"]["Type"].value = "Equilibrium"
+    simulation_setup["Domain"]["BoundaryConditions"]["West"]["EquilibriumDensity"].value = 1.0
+    simulation_setup["Domain"]["BoundaryConditions"]["West"]["EquilibriumVelocity"].value = [0.0, 0.0, 0.0]
+    # simulation_setup["Domain"]["BoundaryConditions"]["North"]["Type"].value = "Wall"
+    # simulation_setup["Domain"]["BoundaryConditions"]["North"]["WallVelocity"].value = [u, 0.0, 0.0]
+    simulation_setup["Domain"]["BoundaryConditions"]["North"]["Type"].value = "Equilibrium"
+    simulation_setup["Domain"]["BoundaryConditions"]["North"]["EquilibriumDensity"].value = 1.0
+    simulation_setup["Domain"]["BoundaryConditions"]["North"]["EquilibriumVelocity"].value = [u, 0.0, 0.0]
+    # simulation_setup["Domain"]["BoundaryConditions"]["South"]["Type"].value = "Wall"
+    # simulation_setup["Domain"]["BoundaryConditions"]["South"]["WallVelocity"].value = [0.0, 0.0, 0.0]
+    simulation_setup["Domain"]["BoundaryConditions"]["South"]["Type"].value = "Equilibrium"
+    simulation_setup["Domain"]["BoundaryConditions"]["South"]["EquilibriumDensity"].value = 1.0
+    simulation_setup["Domain"]["BoundaryConditions"]["South"]["EquilibriumVelocity"].value = [0.0, 0.0, 0.0]
     simulation_setup["Domain"]["BoundaryConditions"]["Top"]["Type"].value = "Periodic"
     simulation_setup["Domain"]["BoundaryConditions"]["Bottom"]["Type"].value = "Periodic"
 
@@ -112,7 +161,7 @@ def main():
     simulation_setup["Output"]["Active"].value = True
     # simulation_setup["Output"]["ModulusArtifactsActive"].value = True
     # simulation_setup["Output"]["PrintTimingInformation"].value = False
-    simulation_setup["Output"]["OutputTimeInterval"].value = 6000.0
+    simulation_setup["Output"]["OutputTimeInterval"].value = 10000.0
     simulation_setup["Output"]["Velocity"]["Active"].value = True
     simulation_setup["Output"]["Velocity"]["ValueBounds"].value = [0.0, 1.0]
     simulation_setup["Output"]["Velocity"]["UseValueBounds"].value = False
@@ -121,10 +170,10 @@ def main():
     simulation_setup["Output"]["Density"]["Types"].value = ["PyTorch", "Picture"]
     # simulation_setup["Output"]["BounceBackMask"]["Active"].value = True
     # simulation_setup["Output"]["BounceBackMask"]["Types"].value = ["PyTorch", "Picture"]
-    simulation_setup["Output"]["EvaluationTimeInterval"].value = 120000.0
+    simulation_setup["Output"]["EvaluationTimeInterval"].value = 200000.0
 
     simulation_setup["Physics"]["MachNumber"].value = u * math.sqrt(3.0)
-    simulation_setup["Physics"]["EndTime"].value = 120000.0
+    simulation_setup["Physics"]["EndTime"].value = 400000.0
     simulation_setup["Physics"]["CharacteristicVelocityPu"].value = u
     simulation_setup["Physics"]["KinematicViscosityPu"].value = nu
     simulation_setup["Physics"]["Precision"].value = "Single"
@@ -135,8 +184,8 @@ def main():
     # simulation_setup["Algorithm"]["Operators"]["EquilibriumCalculation"]["Type"].value = "Classical"
     # simulation_setup["Algorithm"]["Operators"]["EquilibriumCalculation"]["ModelPath"].value = "distribution_learning/models/eq_model.pth"
     simulation_setup["Algorithm"]["Operators"]["Collision"]["Type"].value = "EntropicMRT"
-    simulation_setup["Algorithm"]["Operators"]["Collision"]["ModelPath"].value = "../distribution_learning/mlruns/358668294755187420/cd2ec4e3f9d34dfaa1253842fbf530ac/checkpoints/epoch=126-step=793750.ckpt"
-
+    # simulation_setup["Algorithm"]["Operators"]["Collision"]["ModelPath"].value = "../distribution_learning/mlruns/358668294755187420/cd2ec4e3f9d34dfaa1253842fbf530ac/checkpoints/epoch=126-step=793750.ckpt"
+    simulation_setup["Algorithm"]["Operators"]["Collision"]["ModelPath"].value = "../distribution_learning/mlruns/617757830258376539/1b750f15d097483eafe139cdc2216dbb/checkpoints/epoch=198-step=1243750.ckpt"
     # simulation_setup["Algorithm"]["Operators"]["Collision"]["ModelPath"].value = "distribution_learning/models/eq_model.pth"
 
     simulation_setup["Lattice"]["NSE"]["1D"].value = "D1Q2"

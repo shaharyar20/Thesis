@@ -12,6 +12,7 @@ from torchlbm.boundaries.halfway_bounce_back_boundary_update import HalfwayBounc
 from torchlbm.boundaries.interpolated_bounce_back_boundary_update import InterpolatedBounceBackBoundaryUpdate
 from torchlbm.boundaries.zero_gradient_boundary_update import ZeroGradientBoundaryUpdate
 from torchlbm.boundaries.time_space_dependent_wall_boundary_update import TimeSpaceDependentWallBoundaryUpdate
+from torchlbm.boundaries.equilibrium_boundary_update import EquilibriumBoundaryUpdate
 
 from torchlbm.boundaries.boundary_values.time_space_dependent_wall_velocity import TimeSpaceDependentWallVelocity
 
@@ -35,6 +36,15 @@ def get_boundary_condition_modules(state: TorchlbmState) -> List:
         or state.torchlbm_setup["Domain"]["BoundaryConditions"]["Bottom"]["Type"].value == "Periodic"
     ):
         boundary_condition_modules.append(get_periodic_boundary_module(state))
+    if (
+        state.torchlbm_setup["Domain"]["BoundaryConditions"]["East"]["Type"].value == "Equilibrium"
+        or state.torchlbm_setup["Domain"]["BoundaryConditions"]["West"]["Type"].value == "Equilibrium"
+        or state.torchlbm_setup["Domain"]["BoundaryConditions"]["North"]["Type"].value == "Equilibrium"
+        or state.torchlbm_setup["Domain"]["BoundaryConditions"]["South"]["Type"].value == "Equilibrium"
+        or state.torchlbm_setup["Domain"]["BoundaryConditions"]["Top"]["Type"].value == "Equilibrium"
+        or state.torchlbm_setup["Domain"]["BoundaryConditions"]["Bottom"]["Type"].value == "Equilibrium"
+    ):
+        boundary_condition_modules.append(get_equilibrium_boundary_module(state))
     if (
         state.torchlbm_setup["Domain"]["BoundaryConditions"]["East"]["Type"].value == "Wall"
         or state.torchlbm_setup["Domain"]["BoundaryConditions"]["West"]["Type"].value == "Wall"
@@ -151,6 +161,113 @@ def get_periodic_boundary_module(state: TorchlbmState) -> PeriodicBoundaryUpdate
         is_i_periodic=is_i_periodic,
         is_j_periodic=is_j_periodic,
         is_k_periodic=is_k_periodic,
+    )
+
+def get_equilibrium_boundary_module(state: TorchlbmState) -> EquilibriumBoundaryUpdate:
+    """Factory function to return a wall boundary update object.
+
+    Args:
+        state (TorchlbmState): The state that contains all information about the simulation.
+
+    Returns:
+        WallBoundaryUpdate: The created object.
+    """
+    num_halo_cells: int = state.torchlbm_setup["Domain"]["NumHaloCells"].value
+    internal_cells: List[int] = state.torchlbm_setup["Domain"]["InternalCells"].value
+
+    access_indices: List[List[int]] = [
+        [0, num_halo_cells, num_halo_cells + internal_cells[0], 2 * num_halo_cells + internal_cells[0]],
+        [0, num_halo_cells, num_halo_cells + internal_cells[1], 2 * num_halo_cells + internal_cells[1]],
+        [0, num_halo_cells, num_halo_cells + internal_cells[2], 2 * num_halo_cells + internal_cells[2]],
+    ]
+    dimension = state.torchlbm_setup["Domain"]["DimensionInteger"].value
+
+    is_east_equilibrium = state.torchlbm_setup["Domain"]["BoundaryConditions"]["East"]["Type"].value == "Equilibrium"
+    east_equilibrium_velocity = state.unit_converter.convert_velocity_to_lattice_units(
+        torch.tensor(state.torchlbm_setup["Domain"]["BoundaryConditions"]["East"]["EquilibriumVelocity"].value)
+    )
+    east_equilibrium_density = state.unit_converter.convert_density_to_lattice_units(
+        torch.tensor(state.torchlbm_setup["Domain"]["BoundaryConditions"]["East"]["EquilibriumDensity"].value)
+    )
+    is_west_equilibrium = state.torchlbm_setup["Domain"]["BoundaryConditions"]["West"]["Type"].value == "Equilibrium"
+    west_equilibrium_velocity = state.unit_converter.convert_velocity_to_lattice_units(
+        torch.tensor(state.torchlbm_setup["Domain"]["BoundaryConditions"]["West"]["EquilibriumVelocity"].value)
+    )
+    west_equilibrium_density = state.unit_converter.convert_density_to_lattice_units(
+        torch.tensor(state.torchlbm_setup["Domain"]["BoundaryConditions"]["West"]["EquilibriumDensity"].value)
+    )
+    is_north_equilibrium = state.torchlbm_setup["Domain"]["BoundaryConditions"]["North"]["Type"].value == "Equilibrium"
+    north_equilibrium_velocity = state.unit_converter.convert_velocity_to_lattice_units(
+        torch.tensor(state.torchlbm_setup["Domain"]["BoundaryConditions"]["North"]["EquilibriumVelocity"].value)
+    )
+    north_equilibrium_density = state.unit_converter.convert_density_to_lattice_units(
+        torch.tensor(state.torchlbm_setup["Domain"]["BoundaryConditions"]["North"]["EquilibriumDensity"].value)
+    )
+    is_south_equilibrium = state.torchlbm_setup["Domain"]["BoundaryConditions"]["South"]["Type"].value == "Equilibrium"
+    south_equilibrium_velocity = state.unit_converter.convert_velocity_to_lattice_units(
+        torch.tensor(state.torchlbm_setup["Domain"]["BoundaryConditions"]["South"]["EquilibriumVelocity"].value)
+    )
+    south_equilibrium_density = state.unit_converter.convert_density_to_lattice_units(
+        torch.tensor(state.torchlbm_setup["Domain"]["BoundaryConditions"]["South"]["EquilibriumDensity"].value)
+    )
+    is_top_equilibrium = state.torchlbm_setup["Domain"]["BoundaryConditions"]["Top"]["Type"].value == "Equilibrium"
+    top_equilibrium_velocity = state.unit_converter.convert_velocity_to_lattice_units(
+        torch.tensor(state.torchlbm_setup["Domain"]["BoundaryConditions"]["Top"]["EquilibriumVelocity"].value)
+    )
+    top_equilibrium_density = state.unit_converter.convert_density_to_lattice_units(
+        torch.tensor(state.torchlbm_setup["Domain"]["BoundaryConditions"]["Top"]["EquilibriumDensity"].value)
+    )
+    is_bottom_equilibrium = state.torchlbm_setup["Domain"]["BoundaryConditions"]["Bottom"]["Type"].value == "Equilibrium"
+    bottom_equilibrium_velocity = state.unit_converter.convert_velocity_to_lattice_units(
+        torch.tensor(state.torchlbm_setup["Domain"]["BoundaryConditions"]["Bottom"]["EquilibriumVelocity"].value)
+    )
+    bottom_equilibrium_density = state.unit_converter.convert_density_to_lattice_units(
+        torch.tensor(state.torchlbm_setup["Domain"]["BoundaryConditions"]["Bottom"]["EquilibriumDensity"].value)
+    )
+
+    lattice_velocity = torch.tensor(state.lattice.lattice_velocities())
+    lattice_weights = torch.tensor(state.lattice.lattice_weights())
+
+    east_velocities = state.lattice.east_velocities()
+    west_velocities = state.lattice.west_velocities()
+    north_velocities = state.lattice.north_velocities()
+    south_velocities = state.lattice.south_velocities()
+    top_velocities = state.lattice.top_velocities()
+    bottom_velocities = state.lattice.bottom_velocities()
+    opposite_lattice_indices = state.lattice.opposite_lattice_indices()
+
+    return EquilibriumBoundaryUpdate(
+        is_east_equilibrium=is_east_equilibrium,
+        east_equilibrium_velocity=east_equilibrium_velocity,
+        east_equilibrium_density=east_equilibrium_density,
+        is_west_equilibrium=is_west_equilibrium,
+        west_equilibrium_velocity=west_equilibrium_velocity,
+        west_equilibrium_density=west_equilibrium_density,
+        is_north_equilibrium=is_north_equilibrium,
+        north_equilibrium_velocity=north_equilibrium_velocity,
+        north_equilibrium_density=north_equilibrium_density,
+        is_south_equilibrium=is_south_equilibrium,
+        south_equilibrium_velocity=south_equilibrium_velocity,
+        south_equilibrium_density=south_equilibrium_density,
+        is_top_equilibrium=is_top_equilibrium,
+        top_equilibrium_velocity=top_equilibrium_velocity,
+        top_equilibrium_density=top_equilibrium_density,
+        is_bottom_equilibrium=is_bottom_equilibrium,
+        bottom_equilibrium_velocity=bottom_equilibrium_velocity,
+        bottom_equilibrium_density=bottom_equilibrium_density,
+        num_halo_cells=num_halo_cells,
+        access_indices=access_indices,
+        dimension=dimension,
+        lattice_velocity=lattice_velocity,
+        lattice_velocity_integers=lattice_velocity.clone().detach().int().tolist(),
+        lattice_weights=lattice_weights,
+        east_velocities=east_velocities,
+        west_velocities=west_velocities,
+        north_velocities=north_velocities,
+        south_velocities=south_velocities,
+        top_velocities=top_velocities,
+        bottom_velocities=bottom_velocities,
+        opposite_lattice_indices=opposite_lattice_indices,
     )
 
 

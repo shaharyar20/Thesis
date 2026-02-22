@@ -293,6 +293,10 @@ class LbmSimulation:
                         self.state,
                         (iteration_index + 1) * delta_t_pu,
                     )
+                    # if torch.isnan(self.state.node_data.moments.density).any() or torch.isinf(self.state.node_data.moments.velocity).any():
+                    #     raise TorchlbmError("NaN or Inf detected in macroscopic quantities!")
+                    # if torch.max(torch.abs(self.state.node_data.moments.velocity)) > 0.2:
+                    #     raise TorchlbmError("Unstable velocity detected! Max velocity exceeds limit.")
                 if (output_decision_every_step or output_decision_interval) and self.state.torchlbm_setup["Output"]["ModulusArtifactsActive"].value:
                     with LaunchLogger("Simulation", epoch=iteration_index) if self.use_modulus else nullcontext() as modulus_logger:
                         artifacts = self._output_writer.get_artifacts(

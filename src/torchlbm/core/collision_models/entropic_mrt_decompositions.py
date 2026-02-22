@@ -1,7 +1,7 @@
 import torch
 
 
-def decompose_s_d2q9_nat(f_i: torch.Tensor, c: torch.Tensor, includeT: bool = False, includeQ: bool = False) -> torch.Tensor:
+def decompose_s_d2q9_nat(f_i: torch.Tensor, c: torch.Tensor, includeT: bool = True, includeQ: bool = True) -> torch.Tensor:
     c = c.unsqueeze(-1).unsqueeze(-1).unsqueeze(-1)
 
     M20 = torch.sum(c[0, :] ** 2 * f_i, dim=0)
@@ -55,13 +55,13 @@ def decompose_s_d2q9_nat(f_i: torch.Tensor, c: torch.Tensor, includeT: bool = Fa
             (
                 torch.zeros_like(T_nat),
                 (-Q_xyy_nat / 2.0),
-                (Q_xxy_nat / 2.0),
-                (Q_xyy_nat / 2.0),
                 (-Q_xxy_nat / 2.0),
+                (Q_xyy_nat / 2.0),
+                (Q_xxy_nat / 2.0),
                 ((Q_xyy_nat + Q_xxy_nat) / 4.0),
                 ((-Q_xyy_nat + Q_xxy_nat) / 4.0),
                 ((-Q_xyy_nat - Q_xxy_nat) / 4.0),
-                ((-Q_xyy_nat + Q_xxy_nat) / 4.0),
+                ((Q_xyy_nat - Q_xxy_nat) / 4.0),
             ),
             dim=0,
         ).view(9, f_i.shape[1], f_i.shape[2], f_i.shape[3])
