@@ -47,18 +47,16 @@ def get_single_node_pytorch_data(state: TorchlbmState):
     density = torch.where(bounce_back_mask > 0, density.mean(), density)
 
     velocity = node.moments.velocity[:, start[0] : end[0], start[1] : end[1], start[2] : end[2]].clone().detach()
-    if node.moments.forcing_velocity is not None:
-        velocity += node.moments.forcing_velocity[:, start[0] : end[0], start[1] : end[1], start[2] : end[2]].clone().detach()
     velocity = unit_converter.convert_velocity_to_physical_units(velocity)
     velocity = torch.where(bounce_back_mask.unsqueeze(0) > 0, 0.0, velocity)
 
-    # forcing_velocity = node.moments.forcing_velocity[:, start[0] : end[0], start[1] : end[1], start[2] : end[2]].clone().detach()
-    # forcing_velocity = unit_converter.convert_velocity_to_physical_units(forcing_velocity)
-    # forcing_velocity = forcing_velocity
+    forcing_velocity = node.moments.forcing_velocity[:, start[0] : end[0], start[1] : end[1], start[2] : end[2]].clone().detach()
+    forcing_velocity = unit_converter.convert_velocity_to_physical_units(forcing_velocity)
+    forcing_velocity = forcing_velocity
 
-    # volume_force_field = node.moments.volume_force_field[:, start[0] : end[0], start[1] : end[1], start[2] : end[2]].clone().detach()
-    # volume_force_field = unit_converter.convert_acceleration_to_physical_units(volume_force_field)
-    # volume_force_field = volume_force_field
+    volume_force_field = node.moments.volume_force_field[:, start[0] : end[0], start[1] : end[1], start[2] : end[2]].clone().detach()
+    volume_force_field = unit_converter.convert_acceleration_to_physical_units(volume_force_field)
+    volume_force_field = volume_force_field
 
     result = {}
 
@@ -77,22 +75,4 @@ def get_single_node_pytorch_data(state: TorchlbmState):
             name = "bounce_back_mask"
             result[name] = bounce_back_mask
 
-    if state.torchlbm_setup["Thermal"]["Active"].value:
-        if state.torchlbm_setup["Output"]["Temperature"]["Active"].value:
-            if "PyTorch" in state.torchlbm_setup["Output"]["Temperature"]["Types"].value:
-                name = "temperature"
-                temperature = node.moments.temperature[start[0] : end[0], start[1] : end[1], start[2] : end[2]].clone().detach()
-                # temperature = unit_converter.convert_temperature_to_physical_units(temperature)
-                temperature = torch.where(bounce_back_mask > 0, 0.0, temperature)
-                result[name] = temperature
-
-    if state.torchlbm_setup["Output"]["KinematicViscosity"]["Active"].value and state.torchlbm_setup["Physics"]["NonNewtonian"]["Active"].value:
-        if "PyTorch" in state.torchlbm_setup["Output"]["KinematicViscosity"]["Types"].value:
-            name = "kinematic_viscosity"
-            relaxation_omega = node.relaxation_omega[start[0] : end[0], start[1] : end[1], start[2] : end[2]].clone().detach()
-            relaxation_time = 1.0 / relaxation_omega
-            kinematic_viscosity = unit_converter.convert_relaxation_time_to_kinematic_viscosity_physical_units(relaxation_time)
-            kinematic_viscosity = torch.where(bounce_back_mask > 0, 0.0, kinematic_viscosity)
-            kinematic_viscosity = kinematic_viscosity.detach().numpy()
-            result[name] = kinematic_viscosity
     return result

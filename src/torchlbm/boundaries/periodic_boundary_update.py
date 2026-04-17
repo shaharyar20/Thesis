@@ -41,7 +41,120 @@ class PeriodicBoundaryUpdate(nn.Module):
         self.is_j_periodic: bool = is_j_periodic
         self.is_k_periodic: bool = is_k_periodic
 
-    def forward(self, old_population: torch.Tensor, density: torch.Tensor, velocity: torch.Tensor, bounce_back_mask: torch.Tensor) -> torch.Tensor:
+    def get_halo_array_single_field(self, array: torch.Tensor, i: int, j: int, k: int) -> torch.Tensor:
+        """Returns the halo cells of a specified array. The i-, j-, and k-parameters are either 0, 1, 2. This means:
+        0: Lower part of the spatial direction.
+        1: Middle part of the spatial direction.
+        2: Upper part of the spatial direction.
+
+        Args:
+            array (torch.Tensor): The array for which the halo cells are returned. It has the dimension (Tx, Ty, Tz),
+                                  where Tx, Ty, and Tz denote the total number of cells of the computational domain.
+            i (int): Indicating the part of the block in x-direction.
+            j (int): Indicating the part of the block in y-direction.
+            k (int): Indicating the part of the block in z-direction.
+
+        Returns:
+            torch.Tensor: Part of the input array which corresponds to the halo cells addressed by i, j, and k.
+        """
+        shifted_i = i - 1
+        shifted_j = j - 1
+        shifted_k = k - 1
+        return array[
+            self.access_indices[0][i] - shifted_i * self.num_halo_cells : self.access_indices[0][i + 1] - shifted_i * self.num_halo_cells,
+            self.access_indices[1][j] - shifted_j * self.num_halo_cells if self.dimension != 1 else 0 : (
+                self.access_indices[1][j + 1] - shifted_j * self.num_halo_cells if self.dimension != 1 else 1
+            ),
+            self.access_indices[2][k] - shifted_k * self.num_halo_cells if self.dimension == 3 else 0 : (
+                self.access_indices[2][k + 1] - shifted_k * self.num_halo_cells if self.dimension == 3 else 1
+            ),
+        ]
+
+    def exchange_halo_in_array_single_field(self, array: torch.Tensor, halo_cells: torch.Tensor, i: int, j: int, k: int) -> torch.Tensor:
+        """Exchanges the halo cells in a scalar-valued field. The i-, j-, and k-parameters are either 0, 1, 2. This means:
+        0: Lower part of the spatial direction.
+        1: Middle part of the spatial direction.
+        2: Upper part of the spatial direction.
+
+        Args:
+            array (torch.Tensor): The array for which the part addressed by i, j, and k will be filled. It has the dimension (Tx, Ty, Tz),
+                                  where Tx, Ty, and Tz denote the total number of cells of the computational domain.
+            halo_cells (torch.Tensor): The values with which the scalar-valued array will be filled.
+            i (int): Indicating the part of the block in x-direction.
+            j (int): Indicating the part of the block in y-direction.
+            k (int): Indicating the part of the block in z-direction.
+
+        Returns:
+            torch.Tensor: The scalar-valued field with exchanged halos. It has the dimension (Tx, Ty, Tz),
+                          where Tx, Ty, and Tz denote the total number of cells of the computational domain.
+        """
+        array[
+            self.access_indices[0][i] : self.access_indices[0][i + 1],
+            self.access_indices[1][j] if self.dimension != 1 else 0 : self.access_indices[1][j + 1] if self.dimension != 1 else 1,
+            self.access_indices[2][k] if self.dimension == 3 else 0 : self.access_indices[2][k + 1] if self.dimension == 3 else 1,
+        ] = halo_cells
+        return array
+
+    def get_halo_array_multi_field(self, array: torch.Tensor, i: int, j: int, k: int):
+        """Returns the halo cells of a specified vector-valued array. The i-, j-, and k-parameters are either 0, 1, 2. This means:
+        0: Lower part of the spatial direction.
+        1: Middle part of the spatial direction.
+        2: Upper part of the spatial direction.
+
+        Args:
+            array (torch.Tensor): The array for which the halo cells are returned. It has the dimension (n, Tx, Ty, Tz),
+                                  where Tx, Ty, and Tz denote the total number of cells of the computational domain.
+                                  n is the number of vector components.
+            i (int): Indicating the part of the block in x-direction.
+            j (int): Indicating the part of the block in y-direction.
+            k (int): Indicating the part of the block in z-direction.
+
+        Returns:
+            torch.Tensor: Part of the input array which corresponds to the halo cells addressed by i, j, and k.
+        """
+        shifted_i = i - 1
+        shifted_j = j - 1
+        shifted_k = k - 1
+        return array[
+            :,
+            self.access_indices[0][i] - shifted_i * self.num_halo_cells : self.access_indices[0][i + 1] - shifted_i * self.num_halo_cells,
+            self.access_indices[1][j] - shifted_j * self.num_halo_cells if self.dimension != 1 else 0 : (
+                self.access_indices[1][j + 1] - shifted_j * self.num_halo_cells if self.dimension != 1 else 1
+            ),
+            self.access_indices[2][k] - shifted_k * self.num_halo_cells if self.dimension == 3 else 0 : (
+                self.access_indices[2][k + 1] - shifted_k * self.num_halo_cells if self.dimension == 3 else 1
+            ),
+        ]
+
+    def exchange_halo_in_array_multi_field(self, array: torch.Tensor, halo_cells: torch.Tensor, i: int, j: int, k: int):
+        """Exchanges the halo cells in a vector-valued field. The i-, j-, and k-parameters are either 0, 1, 2. This means:
+        0: Lower part of the spatial direction.
+        1: Middle part of the spatial direction.
+        2: Upper part of the spatial direction.
+
+        Args:
+            array (torch.Tensor): The array for which the part addressed by i, j, and k will be filled. It has the dimension (n, Tx, Ty, Tz),
+                                  where Tx, Ty, and Tz denote the total number of cells of the computational domain.
+                                  n is the number of vector components.
+            halo_cells (torch.Tensor): The values with which the scalar-valued array will be filled.
+            i (int): Indicating the part of the block in x-direction.
+            j (int): Indicating the part of the block in y-direction.
+            k (int): Indicating the part of the block in z-direction.
+
+        Returns:
+            torch.Tensor: The scalar-valued field with exchanged halos. It has the dimension (n, Tx, Ty, Tz),
+                          where Tx, Ty, and Tz denote the total number of cells of the computational domain.
+                          n is the number of vector components.
+        """
+        array[
+            :,
+            self.access_indices[0][i] : self.access_indices[0][i + 1],
+            self.access_indices[1][j] if self.dimension != 1 else 0 : self.access_indices[1][j + 1] if self.dimension != 1 else 1,
+            self.access_indices[2][k] if self.dimension == 3 else 0 : self.access_indices[2][k + 1] if self.dimension == 3 else 1,
+        ] = halo_cells
+        return array
+
+    def forward(self, node_data: NodeData) -> NodeData:
         """Performs the periodic boundary update as the forward pass of the PyTorch module.
 
         Args:
@@ -54,77 +167,25 @@ class PeriodicBoundaryUpdate(nn.Module):
         Returns:
             NodeData: The node data with applied periodic boundary conditions.
         """
+        discrete_velocities = node_data.distributions.old_population
 
-        x = old_population.clone()
-        halo = self.num_halo_cells
+        x_range = [0, 1, 2]
+        y_range = [0, 1, 2] if self.dimension != 1 else [1]
+        z_range = [0, 1, 2] if self.dimension == 3 else [1]
 
-        if self.dimension == 3:
-            # --- Face Updates ---
-            if self.is_i_periodic:
-                x[:, :halo, :, :] = x[:, -2 * halo : -halo, :, :]  # Left halo from right interior
-                x[:, -halo:, :, :] = x[:, halo : 2 * halo, :, :]  # Right halo from left interior
+        for i in x_range:
+            for j in y_range:
+                for k in z_range:
+                    if (i != 1 and self.is_i_periodic) or (j != 1 and self.is_j_periodic) or (k != 1 and self.is_k_periodic):
+                        distribution_halo_cells = self.get_halo_array_multi_field(discrete_velocities, i, j, k)
+                        # print(distribution_halo_cells.shape)
+                        discrete_velocities = self.exchange_halo_in_array_multi_field(
+                            discrete_velocities,
+                            distribution_halo_cells,
+                            -1 * (i - 1) + 1,
+                            -1 * (j - 1) + 1,
+                            -1 * (k - 1) + 1,
+                        )
+        node_data.distributions.old_population = discrete_velocities
 
-            if self.is_j_periodic:
-                x[:, :, :halo, :] = x[:, :, -2 * halo : -halo, :]  # Bottom halo from top interior
-                x[:, :, -halo:, :] = x[:, :, halo : 2 * halo, :]  # Top halo from bottom interior
-
-            if self.is_k_periodic:
-                x[:, :, :, :halo] = x[:, :, :, -2 * halo : -halo]  # Front halo from back interior
-                x[:, :, :, -halo:] = x[:, :, :, halo : 2 * halo]  # Back halo from front interior
-
-            # --- Edge Updates ---
-            if self.is_i_periodic and self.is_j_periodic:
-                x[:, :halo, :halo, :] = x[:, -2 * halo : -halo, -2 * halo : -halo, :]
-                x[:, -halo:, :halo, :] = x[:, halo : 2 * halo, -2 * halo : -halo, :]
-                x[:, :halo, -halo:, :] = x[:, -2 * halo : -halo, halo : 2 * halo, :]
-                x[:, -halo:, -halo:, :] = x[:, halo : 2 * halo, halo : 2 * halo, :]
-
-            if self.is_i_periodic and self.is_k_periodic:
-                x[:, :halo, :, :halo] = x[:, -2 * halo : -halo, :, -2 * halo : -halo]
-                x[:, -halo:, :, :halo] = x[:, halo : 2 * halo, :, -2 * halo : -halo]
-                x[:, :halo, :, -halo:] = x[:, -2 * halo : -halo, :, halo : 2 * halo]
-                x[:, -halo:, :, -halo:] = x[:, halo : 2 * halo, :, halo : 2 * halo]
-
-            if self.is_j_periodic and self.is_k_periodic:
-                x[:, :, :halo, :halo] = x[:, :, -2 * halo : -halo, -2 * halo : -halo]
-                x[:, :, -halo:, :halo] = x[:, :, halo : 2 * halo, -2 * halo : -halo]
-                x[:, :, :halo, -halo:] = x[:, :, -2 * halo : -halo, halo : 2 * halo]
-                x[:, :, -halo:, -halo:] = x[:, :, halo : 2 * halo, halo : 2 * halo]
-
-            # --- Corner Updates ---
-            if self.is_i_periodic and self.is_j_periodic and self.is_k_periodic:
-                x[:, :halo, :halo, :halo] = x[:, -2 * halo : -halo, -2 * halo : -halo, -2 * halo : -halo]
-                x[:, -halo:, :halo, :halo] = x[:, halo : 2 * halo, -2 * halo : -halo, -2 * halo : -halo]
-                x[:, :halo, -halo:, :halo] = x[:, -2 * halo : -halo, halo : 2 * halo, -2 * halo : -halo]
-                x[:, -halo:, -halo:, :halo] = x[:, halo : 2 * halo, halo : 2 * halo, -2 * halo : -halo]
-
-                x[:, :halo, :halo, -halo:] = x[:, -2 * halo : -halo, -2 * halo : -halo, halo : 2 * halo]
-                x[:, -halo:, :halo, -halo:] = x[:, halo : 2 * halo, -2 * halo : -halo, halo : 2 * halo]
-                x[:, :halo, -halo:, -halo:] = x[:, -2 * halo : -halo, halo : 2 * halo, halo : 2 * halo]
-                x[:, -halo:, -halo:, -halo:] = x[:, halo : 2 * halo, halo : 2 * halo, halo : 2 * halo]
-
-        if self.dimension == 2:
-            # --- Edge Updates ---
-            if self.is_i_periodic:
-                x[:, :halo, :, :] = x[:, -2 * halo : -halo, :, :]  # Left halo from right interior
-                x[:, -halo:, :, :] = x[:, halo : 2 * halo, :, :]  # Right halo from left interior
-
-            if self.is_j_periodic:
-                x[:, :, :halo, :] = x[:, :, -2 * halo : -halo, :]  # Bottom halo from top interior
-                x[:, :, -halo:, :] = x[:, :, halo : 2 * halo, :]  # Top halo from bottom interior
-
-            # --- Corner Updates ---
-            if self.is_i_periodic and self.is_j_periodic:
-                x[:, :halo, :halo, :] = x[:, -2 * halo : -halo, -2 * halo : -halo, :]  # Bottom-left from top-right
-                x[:, -halo:, :halo, :] = x[:, halo : 2 * halo, -2 * halo : -halo, :]  # Bottom-right from top-left
-                x[:, :halo, -halo:, :] = x[:, -2 * halo : -halo, halo : 2 * halo, :]  # Top-left from bottom-right
-                x[:, -halo:, -halo:, :] = x[:, halo : 2 * halo, halo : 2 * halo, :]  # Top-right from bottom-left
-
-        if self.dimension == 1:
-            if self.is_i_periodic:
-                x[:, :halo, :, :] = x[:, -2 * halo : -halo, :, :]  # Left halo from right interior
-                x[:, -halo:, :, :] = x[:, halo : 2 * halo, :, :]  # Right halo from left interior
-
-        # node_data.distributions.old_population = x
-
-        return x
+        return node_data

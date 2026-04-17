@@ -1,4 +1,4 @@
-"""Type converters."""
+""" Type converters. """
 
 # Classes and functions
 from .type_converter import TypeConverter

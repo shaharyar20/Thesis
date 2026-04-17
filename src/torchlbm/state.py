@@ -1,8 +1,7 @@
 import torch
 from typing import List
-import numpy as np
 
-from torchlbm.core.equilibrium.equilibrium import EquilibriumCalculationModule
+from torchlbm.core.collision_models.linear_bgk import EquilibriumCalculationModule
 from torchlbm.simulation_setup.torchlbm_setup import TorchlbmSetup
 from torchlbm.exceptions import TorchlbmError
 from torchlbm.torchlbm_initial_condition import TorchlbmInitialCondition
@@ -12,12 +11,8 @@ from torchlbm.core.lattices.lattice_dictionaries import (
     ThreeDimensionalLattices,
 )
 from torchlbm.node_data import NodeData, Distributions, Moments
-from torchlbm.thermal_node_data import ThermalNodeData, ThermalDistributions, ThermalMoments
 from torchlbm.unit_converter import UnitConverter
 from torchlbm.logger import Logger
-from torchlbm.boundaries.bounce_back_utils.intersection import find_intersection
-from torchlbm.boundaries.bounce_back_utils.mask_from_stl import generate_bounce_back_mask_from_stl
-from torchlbm.boundaries.bounce_back_utils.segment_mesh_intersection import segment_mesh_intersection
 
 
 def get_meshgrid_for_node(number_nodes: List[int], lattice_distance: float, cells_per_node: int, num_halo_cells: int, dimension: int) -> List[torch.Tensor]:
@@ -114,8 +109,10 @@ class TorchlbmState:
         cells_per_node = self.torchlbm_setup["Domain"]["CellsPerNode"].value
         total_cells_per_node = pow(cells_per_node, dimension)
         self.lattice_distance = node_size / cells_per_node
-        self.logger = logger
+
         self.unit_converter = UnitConverter(
+            torchlbm_setup=torchlbm_setup,
+            logger=logger,
             lattice_distance=self.lattice_distance,
             characteristic_velocity_physical_units=self.torchlbm_setup["Physics"]["CharacteristicVelocityPu"].value,
             kinematic_viscosity=self.torchlbm_setup["Physics"]["KinematicViscosityPu"].value,
@@ -124,23 +121,13 @@ class TorchlbmState:
         self.torchlbm_setup["Physics"]["CharacteristicVelocityLu"].value = self.unit_converter.convert_velocity_to_lattice_units(
             self.torchlbm_setup["Physics"]["CharacteristicVelocityPu"].value
         )
-        self.log_units()
+        self.unit_converter.log_units()
 
         self.total_number_of_lattices = total_cells_per_node * total_i * total_j * total_k
 
-        meshgrid_for_node = get_meshgrid_for_node(node_ratio, self.lattice_distance, cells_per_node, num_halo_cells, dimension)
-        self.west_meshgrid = [meshgrid_for_node[i][:num_halo_cells, :, :] for i in range(3)]
-        self.east_meshgrid = [meshgrid_for_node[i][-num_halo_cells:, :, :] for i in range(3)]
-        self.south_meshgrid = [meshgrid_for_node[i][:, :num_halo_cells, :] for i in range(3)]
-        self.north_meshgrid = [meshgrid_for_node[i][:, -num_halo_cells:, :] for i in range(3)]
-        self.bottom_meshgrid = [meshgrid_for_node[i][:, :, :num_halo_cells] for i in range(3)]
-        self.top_meshgrid = [meshgrid_for_node[i][:, :, -num_halo_cells:] for i in range(3)]
-
         self.torchlbm_setup["Physics"]["RelaxationOmega"].value = 1.0 / self.unit_converter.relaxation_parameter_lattice_units
-        if self.torchlbm_setup["Physics"]["NonNewtonian"]["Active"].value:
-            initial_relaxation_omega = torch.ones_like(meshgrid_for_node[0]) * self.torchlbm_setup["Physics"]["RelaxationOmega"].value
-        else:
-            initial_relaxation_omega = torch.tensor(self.torchlbm_setup["Physics"]["RelaxationOmega"].value)
+
+        meshgrid_for_node = get_meshgrid_for_node(node_ratio, self.lattice_distance, cells_per_node, num_halo_cells, dimension)
 
         initial_density = torch.ones_like(meshgrid_for_node[0])
         if self.torchlbm_setup["InitialCondition"]["ReadInitialConditionFromYaml"].value:
@@ -149,7 +136,7 @@ class TorchlbmState:
             )
         elif self.torchlbm_setup["InitialCondition"]["ReadInitialFieldsFromPyTorchFiles"].value:
             density_from_pt = torch.load(self.torchlbm_setup["InitialCondition"]["PyTorchFields"]["Density"].value)
-            initial_density = density_from_pt
+            initial_density[start[0] : end[0], start[1] : end[1], start[2] : end[2]] = density_from_pt
         else:
             initial_density = initial_condition.get_initial_density(meshgrid_for_node[0], meshgrid_for_node[1], meshgrid_for_node[2])
         initial_density = self.unit_converter.convert_density_to_lattice_units(initial_density)
@@ -183,7 +170,7 @@ class TorchlbmState:
         elif self.torchlbm_setup["InitialCondition"]["ReadInitialFieldsFromPyTorchFiles"].value:
             velocity_profile = torch.cat([initial_velocity_x.unsqueeze(0), initial_velocity_y.unsqueeze(0), initial_velocity_z.unsqueeze(0)], dim=0)
             velocity_from_pt = torch.load(self.torchlbm_setup["InitialCondition"]["PyTorchFields"]["Velocity"].value)
-            velocity_profile = velocity_from_pt
+            velocity_profile[:, start[0] : end[0], start[1] : end[1], start[2] : end[2]] = velocity_from_pt
         else:
             [initial_velocity_x, initial_velocity_y, initial_velocity_z] = initial_condition.get_initial_velocity(
                 meshgrid_for_node[0], meshgrid_for_node[1], meshgrid_for_node[2]
@@ -208,300 +195,20 @@ class TorchlbmState:
         elif self.torchlbm_setup["InitialCondition"]["ReadInitialFieldsFromPyTorchFiles"].value:
             bounce_back_mask_from_pt = torch.load(self.torchlbm_setup["InitialCondition"]["PyTorchFields"]["BounceBackMask"].value)
             initial_bounce_back_mask[start[0] : end[0], start[1] : end[1], start[2] : end[2]] = bounce_back_mask_from_pt
-        elif self.torchlbm_setup["InitialCondition"]["ReadInitialMeshfromSTL"].value:
-            initial_bounce_back_mask, stl_mesh = generate_bounce_back_mask_from_stl(
-                self.torchlbm_setup["InitialCondition"]["STLFilePath"].value,
-                meshgrid_for_node,
-                num_halo_cells,
-            )
         else:
             initial_bounce_back_mask = initial_condition.get_bounce_back_mask(meshgrid_for_node[0], meshgrid_for_node[1], meshgrid_for_node[2])
 
-        initial_bounce_back_mask = initial_bounce_back_mask.to(torch.int8)
-        internal_cells: List[int] = self.torchlbm_setup["Domain"]["InternalCells"].value
-        access_indices: List[List[int]] = [
-            [0, num_halo_cells, num_halo_cells + internal_cells[0], 2 * num_halo_cells + internal_cells[0]],
-            [0, num_halo_cells, num_halo_cells + internal_cells[1], 2 * num_halo_cells + internal_cells[1]],
-            [0, num_halo_cells, num_halo_cells + internal_cells[2], 2 * num_halo_cells + internal_cells[2]],
-        ]
-        # if self.torchlbm_setup["Domain"]["BoundaryConditions"]["South"]["Type"].value == "Wall":
-        #     initial_bounce_back_mask[
-        #         access_indices[0][1]:
-        #         access_indices[0][2],
-        #         access_indices[1][0] if dimension != 1 else 0:
-        #         access_indices[1][1] if dimension != 1 else 1,
-        #         access_indices[2][1] if dimension == 3 else 0:
-        #         access_indices[2][2] if dimension == 3 else 1, ] = 2
-        # if self.torchlbm_setup["Domain"]["BoundaryConditions"]["North"]["Type"].value == "Wall":
-        #     initial_bounce_back_mask[
-        #         access_indices[0][1]:
-        #         access_indices[0][2],
-        #         access_indices[1][2] if dimension != 1 else 0:
-        #         access_indices[1][3] if dimension != 1 else 1,
-        #         access_indices[2][1] if dimension == 3 else 0:
-        #         access_indices[2][2] if dimension == 3 else 1, ] = 2
-        # if self.torchlbm_setup["Domain"]["BoundaryConditions"]["West"]["Type"].value == "Wall":
-        #     initial_bounce_back_mask[
-        #         access_indices[0][0]:
-        #         access_indices[0][1],
-        #         access_indices[1][1] if dimension != 1 else 0:
-        #         access_indices[1][2] if dimension != 1 else 1,
-        #         access_indices[2][1] if dimension == 3 else 0:
-        #         access_indices[2][2] if dimension == 3 else 1, ] = 2
-        # if self.torchlbm_setup["Domain"]["BoundaryConditions"]["East"]["Type"].value == "Wall":
-        #     initial_bounce_back_mask[
-        #         access_indices[0][2]:
-        #         access_indices[0][3],
-        #         access_indices[1][1] if dimension != 1 else 0:
-        #         access_indices[1][2] if dimension != 1 else 1,
-        #         access_indices[2][1] if dimension == 3 else 0:
-        #         access_indices[2][2] if dimension == 3 else 1, ] = 2
-        # if self.torchlbm_setup["Domain"]["BoundaryConditions"]["Top"]["Type"].value == "Wall":
-        #     initial_bounce_back_mask[
-        #         access_indices[0][1]:
-        #         access_indices[0][2],
-        #         access_indices[1][1] if dimension != 1 else 0:
-        #         access_indices[1][2] if dimension != 1 else 1,
-        #         access_indices[2][2] if dimension == 3 else 0:
-        #         access_indices[2][3] if dimension == 3 else 1, ] = 2
-        # if self.torchlbm_setup["Domain"]["BoundaryConditions"]["Bottom"]["Type"].value == "Wall":
-        #     initial_bounce_back_mask[
-        #         access_indices[0][1]:
-        #         access_indices[0][2],
-        #         access_indices[1][1] if dimension != 1 else 0:
-        #         access_indices[1][2] if dimension != 1 else 1,
-        #         access_indices[2][0] if dimension == 3 else 0:
-        #         access_indices[2][1] if dimension == 3 else 1, ] = 2
-
         density_shape = initial_density.shape
-
-        if self.torchlbm_setup["Physics"]["VolumeForces"]["Active"].value or self.torchlbm_setup["Multiphase"]["Active"].value:
-            initial_forcing_velocity = torch.zeros_like(velocity_profile)
-            initial_volume_force_field = torch.zeros_like(velocity_profile)
-            if self.torchlbm_setup["Physics"]["VolumeForces"]["Type"].value == "Guo":
-                initial_collision_source_term = torch.zeros([self.lattice.n_discrete_velocities, density_shape[0], density_shape[1], density_shape[2]])
-            else:
-                initial_collision_source_term = None
-        else:
-            initial_forcing_velocity = None
-            initial_volume_force_field = None
-            initial_collision_source_term = None
-
-        if self.torchlbm_setup["Thermal"]["Active"].value:
-            initial_temperature = initial_condition.get_initial_temperature(meshgrid_for_node[0], meshgrid_for_node[1], meshgrid_for_node[2])
-            initial_temp_relaxation_omega = torch.tensor(1.0 / (
-                3.0 * self.torchlbm_setup["Thermal"]["HeatConductivity"].value + 0.5
-            ))
-            initial_vel_collision_source_term = initial_collision_source_term
-            if initial_vel_collision_source_term is not None:
-                initial_temp_collision_source_term = initial_collision_source_term
-            else:
-                initial_temp_collision_source_term = None
-
-            self.node_data: ThermalNodeData = ThermalNodeData(
-                distributions=ThermalDistributions(
-                    torch.empty([self.lattice.n_discrete_velocities, density_shape[0], density_shape[1], density_shape[2]]),
-                    torch.empty([self.lattice.n_discrete_velocities, density_shape[0], density_shape[1], density_shape[2]]),
-                    torch.empty([self.lattice.n_discrete_velocities, density_shape[0], density_shape[1], density_shape[2]]),
-                    torch.empty([self.lattice.n_discrete_velocities, density_shape[0], density_shape[1], density_shape[2]]),
-                    initial_vel_collision_source_term,
-                    initial_temp_collision_source_term,
-                ),
-                moments=ThermalMoments(
-                    initial_density,
-                    velocity_profile,
-                    initial_temperature,
-                    initial_forcing_velocity,
-                    initial_volume_force_field,
-                ),
-                vel_relaxation_omega=initial_relaxation_omega,
-                temp_relaxation_omega=initial_temp_relaxation_omega,
-                bounce_back_mask=initial_bounce_back_mask.to(torch.int8) if initial_bounce_back_mask is not None else None,
-            )
-            self.node_data.distributions.vel_new_population = equilibrium_module(
-                self.node_data.moments.density,
-                self.node_data.moments.velocity,
-                self.node_data.moments.forcing_velocity,
-            )
-            self.node_data.distributions.temp_new_population = equilibrium_module(
-                self.node_data.moments.temperature,
-                self.node_data.moments.velocity,
-                self.node_data.moments.forcing_velocity,
-            )
-            self.node_data.distributions.vel_old_population = self.node_data.distributions.vel_new_population.clone()
-            self.node_data.distributions.temp_old_population = self.node_data.distributions.temp_new_population.clone()
-
-        elif self.torchlbm_setup["Algorithm"]["Operators"]["Collision"]["Type"].value == "GNN":
-            self.node_data: NodeData = NodeData(
-                distributions=Distributions(
-                    torch.empty([self.lattice.n_discrete_velocities, density_shape[0], density_shape[1], density_shape[2]]),
-                    None,
-                    initial_collision_source_term,
-                ),
-                moments=Moments(initial_density, velocity_profile, initial_forcing_velocity, initial_volume_force_field),
-                relaxation_omega=initial_relaxation_omega,
-                bounce_back_mask=initial_bounce_back_mask.to(torch.int8) if initial_bounce_back_mask is not None else None,
-            )
-            self.node_data.distributions.old_population = equilibrium_module(
-                self.node_data.moments.density,
-                self.node_data.moments.velocity,
-                self.node_data.moments.forcing_velocity,
-            )
-
-        else:
-            self.node_data: NodeData = NodeData(
-                distributions=Distributions(
-                    torch.empty([self.lattice.n_discrete_velocities, density_shape[0], density_shape[1], density_shape[2]]),
-                    torch.empty([self.lattice.n_discrete_velocities, density_shape[0], density_shape[1], density_shape[2]]),
-                    initial_collision_source_term,
-                ),
-                moments=Moments(initial_density, velocity_profile, initial_forcing_velocity, initial_volume_force_field),
-                relaxation_omega=initial_relaxation_omega,
-                bounce_back_mask=initial_bounce_back_mask.to(torch.int8) if initial_bounce_back_mask is not None else None,
-            )
-            self.node_data.distributions.new_population = equilibrium_module(
-                self.node_data.moments.density,
-                self.node_data.moments.velocity,
-                self.node_data.moments.forcing_velocity,
-            )
-            self.node_data.distributions.old_population = self.node_data.distributions.new_population.clone()
-
-        if self.torchlbm_setup["Domain"]["BoundaryConditions"]["BounceBackType"].value == "Interpolated" or self.torchlbm_setup["Domain"]["BoundaryConditions"]["BounceBackType"].value == "Halfway":
-
-            # Convert meshgrid_for_node from list of tensors to tensor
-            grid = torch.stack(meshgrid_for_node, dim=0)
-            # print(self.grid.shape)
-
-            # self.ibb_factors = -1 * torch.ones([self.lattice.number_of_discrete_velocities(), self.grid.shape[1], self.grid.shape[2], self.grid.shape[3]])
-            # print(self.ibb_factors.shape)
-
-            # def curve_function(X, Y):
-            #     # return 0.5 + 0.15*((1-torch.cos(2*torch.pi*X/2.0))) - Y
-            #     # return 0.5 + 0.3*torch.sin(torch.pi*X/4.0) - Y
-            #     return torch.sqrt((X-0.5)*(X-0.5)+(Y-0.5)*(Y-0.5)) - 0.1
-            
-            # Trying to correct bounce back first
-            first_mask = initial_bounce_back_mask.bool()
-            directions_to_check = torch.tensor(self.lattice.lattice_velocities()).int()
-            opp_indices = torch.tensor(self.lattice.opposite_lattice_indices()).int()
-            self.boundary_indices = []
-            self.opp_boundary_indices = []
-            self.ibb_factors1 = []
-            self.ibb_factors2 = []
-            self.additional_indices = []
-
-            # curve_function = initial_condition.get_curve_function(meshgrid_for_node[0], meshgrid_for_node[1], meshgrid_for_node[2])
-
-            # print(start, end)
-            # print(total_i, total_j, total_k)
-            # print(a)
-                
-            for i in range(1, self.lattice.number_of_discrete_velocities()):
-                shifted_mask = torch.roll(
-                    first_mask,
-                    shifts=[-directions_to_check[0][i], -directions_to_check[1][i]],
-                    dims=[0, 1],
-                )
-                # Check if the node is a fluid boundary node
-                fluid_edge = torch.where(shifted_mask & ~first_mask, True, False)
-                fluid_edge[0:num_halo_cells, :, :] = 0
-                fluid_edge[-num_halo_cells:, :, :] = 0
-                fluid_edge[:, 0:num_halo_cells, :] = 0
-                fluid_edge[:, -num_halo_cells:, :] = 0
-                # fluid_edge[:, :, 0:num_halo_cells] = 0
-                # fluid_edge[:, :, -num_halo_cells:] = 0
-
-                # Get the indices of the fluid edge nodes
-                indices = fluid_edge.nonzero(as_tuple=False)
-                
-                solid_indices = indices.clone()
-                solid_indices[:, 0] = solid_indices[:, 0] + directions_to_check[0][i]
-                solid_indices[:, 1] = solid_indices[:, 1] + directions_to_check[1][i]
-
-                if indices.shape[0] != 0:
-                    assert torch.equal(solid_indices, indices) != True
-
-                q_col = torch.full((indices.shape[0], 1), opp_indices[i])
-                indices_q = torch.cat((q_col, indices), dim=1)
-
-                opp_q_col = torch.full((solid_indices.shape[0], 1), i)
-                opp_indices_q = torch.cat((opp_q_col, solid_indices), dim=1)
-                self.boundary_indices.append(indices_q)
-                self.opp_boundary_indices.append(opp_indices_q)
-
-                if self.torchlbm_setup["Domain"]["BoundaryConditions"]["BounceBackType"].value == "Interpolated":
-
-                    ibb_factor_list1 = []
-                    ibb_factor_list2 = []
-                    additional_indices_list = []
-                    for index in indices:
-
-                        
-                        x1, y1, z1 = grid[:, index[0], index[1], index[2]]
-                        x2, y2, z2 = grid[:, index[0] + directions_to_check[0][i], index[1] + directions_to_check[1][i], index[2]]
-                        # print(x1, y1, x2, y2)
-                        if self.torchlbm_setup["InitialCondition"]["ReadInitialMeshfromSTL"].value:
-                            # print("Using STL for intersection")
-                            # print(directions_to_check[0][i], directions_to_check[1][i])
-                            intersection = segment_mesh_intersection(
-                                mesh=stl_mesh,
-                                p0=np.array([x1.item(), y1.item(), z1.item()]),
-                                p1=np.array([x2.item(), y2.item(), z2.item()]),
-                            )
-                            print(intersection)
-                        else:
-
-                            curve_functions = initial_condition.get_curve_function(grid[0], grid[1], grid[2])
-                            intersection, _, _, _ = find_intersection(curve_functions, 
-                                                                x1, y1, z1, x2, y2, z2)
-                        # print(intersection)
-                        # additional_index = index.clone()
-                        if intersection < 0.5:
-                            additional_indices_list.append(torch.tensor([i, index[0], index[1], index[2]]))
-                            if (index[0] + directions_to_check[0][i] == 0) or (index[1] + directions_to_check[1][i] == 0):
-                                i1 = 0.5
-                                i2 = 0.5
-                            else:
-                                i1 = 2.0 * intersection
-                                i2 = (1.0 - 2.0 * intersection)
-                        if intersection >= 0.5:
-                            # additional_index[0] = index[0] - directions_to_check[0][i]
-                            # additional_index[1] = index[1] - directions_to_check[1][i]
-                            additional_indices_list.append(torch.tensor([opp_indices[i], index[0] - directions_to_check[0][i], index[1] - directions_to_check[1][i], index[2]]))
-                            if (index[0] + directions_to_check[0][i] == grid.shape[1] - 1) or (index[1] + directions_to_check[1][i] == grid.shape[2] - 1):
-                                i1 = 0.5
-                                i2 = 0.5
-                            else:
-                                i1 = 1.0 / (2.0 * intersection)
-                                i2 = (2.0 * intersection - 1.0) / (2.0 * intersection)
-
-                        # ibb_factor_list1.append(i1)
-                        ibb_factor_list1.append(i1)
-                        ibb_factor_list2.append(i2)
-                        # additional_indices_list.append(additional_index)
-
-                    ibb_factor_list1 = torch.tensor(ibb_factor_list1)
-                    ibb_factor_list2 = torch.tensor(ibb_factor_list2)
-                    # print(ibb_factor_list1.shape, ibb_factor_list2.shape)
-                    # additional_indices_list = torch.tensor(additional_indices_list)
-                    if len(additional_indices_list) != 0:
-                        additional_indices_list = torch.stack(additional_indices_list)
-                        # print(additional_indices_list.shape)
-                        self.additional_indices.append(additional_indices_list)
-                    self.ibb_factors1.append(ibb_factor_list1)
-                    self.ibb_factors2.append(ibb_factor_list2)
-                
-
-
-            # Convert the list of tensors to a single tensor
-            self.boundary_indices = torch.cat(self.boundary_indices, dim=0)
-            self.opp_boundary_indices = torch.cat(self.opp_boundary_indices, dim=0)
-            if self.torchlbm_setup["Domain"]["BoundaryConditions"]["BounceBackType"].value == "Interpolated":
-                self.additional_indices = torch.cat(self.additional_indices, dim=0)
-                self.ibb_factors1 = torch.cat(self.ibb_factors1, dim=0)
-                self.ibb_factors2 = torch.cat(self.ibb_factors2, dim=0)
-            # print(a)
-
+        self.node_data: NodeData = NodeData(
+            distributions=Distributions(
+                torch.empty([self.lattice.n_discrete_velocities, density_shape[0], density_shape[1], density_shape[2]]),
+                torch.empty([self.lattice.n_discrete_velocities, density_shape[0], density_shape[1], density_shape[2]]),
+            ),
+            moments=Moments(initial_density, velocity_profile, torch.zeros_like(velocity_profile), torch.zeros_like(velocity_profile)),
+            bounce_back_mask=initial_bounce_back_mask.to(torch.int8) if initial_bounce_back_mask is not None else None,
+        )
+        self.node_data = equilibrium_module(self.node_data)
+        self.node_data.distributions.old_population = self.node_data.distributions.new_population
 
     def mps(self) -> None:
         """Moves all relevant data to the MPS device (tested for Apple MacBook with M chips.)"""
@@ -514,113 +221,3 @@ class TorchlbmState:
     def cpu(self) -> None:
         """Moves all relevant data to the cpu."""
         self.node_data.cpu()
-
-    def log_units(self):
-        """Logs all relevant information of the unit converter."""
-        self.logger.write("\n")
-        self.logger.star_line_flush()
-        self.logger.write("\n")
-        self.logger.write("Conversion factors:")
-        self.logger.write("\n")
-        self.logger.write_table(
-            [
-                ["Name", "Value"],
-                [],
-                [
-                    "Length",
-                    "{:10.4f}".format(self.unit_converter.conversion_factor_length),
-                ],
-                [],
-                [
-                    "Velocity",
-                    "{:10.4f}".format(self.unit_converter.conversion_factor_velocity),
-                ],
-                [],
-                [
-                    "Time",
-                    "{:10.4f}".format(self.unit_converter.conversion_factor_time),
-                ],
-                [],
-                [
-                    "Acceleration",
-                    "{:10.4f}".format(self.unit_converter.conversion_factor_acceleration),
-                ],
-                [],
-                [
-                    "Density",
-                    "{:10.4f}".format(self.unit_converter.conversion_factor_density),
-                ],
-                [],
-                [
-                    "Pressure",
-                    "{:10.4f}".format(self.unit_converter.conversion_factor_pressure),
-                ],
-                [],
-                [
-                    "Bending modulus",
-                    "{:10.4f}".format(self.unit_converter.conversion_factor_bending_modulus),
-                ],
-                [],
-                [
-                    "Shear resistance",
-                    "{:10.4f}".format(self.unit_converter.conversion_factor_shear_resistance),
-                ],
-            ]
-        )
-        self.logger.write("\n")
-        self.logger.star_line_flush()
-        self.logger.write("\n")
-
-        self.logger.write("Stability considerations:")
-        self.logger.write("\n")
-        self.logger.write_table(
-            [
-                ["Name", "Value"],
-                [],
-                [
-                    "Tau lattice units",
-                    "{:10.4f}".format(self.unit_converter.relaxation_parameter_lattice_units),
-                ],
-                [],
-                [
-                    "Characteristic velocity in lattice units",
-                    "{:10.4f}".format(self.unit_converter.convert_velocity_to_lattice_units(self.unit_converter.characteristic_velocity_physical_units)),
-                ],
-            ]
-        )
-        self.logger.write("\n")
-        self.logger.star_line_flush()
-        self.logger.write("\n")
-
-        if self.torchlbm_setup["Physics"]["NonNewtonian"]["Active"].value:
-            if self.torchlbm_setup["Physics"]["NonNewtonian"]["Type"].value == "CarreauYasuda":
-                self.logger.write("Carreau Yasuda Viscosity parameters:")
-                self.logger.write("\n")
-                self.logger.write_table(
-                    [
-                        ["Name", "Physical Value", "Lattice Value"],
-                        [],
-                        [
-                            "viscosity_0",
-                            self.torchlbm_setup["Physics"]["KinematicViscosityPu"].value,
-                            "{:10.4f}".format(
-                                self.unit_converter.convert_kinematic_viscosity_to_relaxation_time_lattice_units(
-                                    self.torchlbm_setup["Physics"]["KinematicViscosityPu"].value
-                                )
-                            ),
-                        ],
-                        [],
-                        [
-                            "viscosity_inf",
-                            self.torchlbm_setup["Physics"]["NonNewtonian"]["CarreauYasuda"]["ViscosityInf"].value,
-                            "{:10.4f}".format(
-                                self.unit_converter.convert_kinematic_viscosity_to_relaxation_time_lattice_units(
-                                    self.torchlbm_setup["Physics"]["NonNewtonian"]["CarreauYasuda"]["ViscosityInf"].value
-                                )
-                            ),
-                        ],
-                    ]
-                )
-                self.logger.write("\n")
-                self.logger.star_line_flush()
-                self.logger.write("\n")

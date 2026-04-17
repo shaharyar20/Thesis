@@ -6,7 +6,6 @@ import numpy as np
 import pandas as pd
 import os
 import cv2
-import imageio
 
 import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
@@ -16,7 +15,6 @@ from torchlbm.logger import Logger
 from torchlbm.io_tools.vtk_output_writer import get_single_node_output_data
 from torchlbm.io_tools.pdf_output_writer import get_single_node_pyplot_data
 from torchlbm.io_tools.pytorch_output_writer import get_single_node_pytorch_data
-from torchlbm.io_tools.statistics_output_writer import get_statistics_figure, get_boxplot_figure
 from vtk import vtkXMLImageDataWriter, vtkXMLPolyDataWriter
 
 
@@ -46,16 +44,6 @@ class OutputWriter:
         self.__logger = logger
         self.__dimension = state.torchlbm_setup["Domain"]["Dimension"].value
 
-        field_list = ["Density", "Velocity", "BounceBackMask"]
-        if state.torchlbm_setup["Physics"]["NonNewtonian"]["Active"].value:
-            field_list.append("KinematicViscosity")
-        if state.torchlbm_setup["Thermal"]["Active"].value:
-            field_list.append("Temperature")
-        for field in field_list:
-            if state.torchlbm_setup["Output"][field]["Active"].value:
-                folder_to_be_created = self._visualization_folder.joinpath(field.lower())
-                file_o.create_folder(folder_to_be_created)
-
         self._image_lists = {
             "velocity": [],
             "density": [],
@@ -71,7 +59,7 @@ class OutputWriter:
         """
         if torch.cuda.is_available():
             state.cpu()
-        if not torch.backends.mps.is_available() and torch.backends.mps.is_built():
+        if torch.backends.mps.is_available() and torch.backends.mps.is_built():
             state.cpu()
 
         internal_cells_list = state.torchlbm_setup["Domain"]["InternalCells"].value
@@ -82,7 +70,7 @@ class OutputWriter:
         time_string = f"{timestamp:.8f}"
         vtk_file = f"output_{time_string}.vti"
         vtk_filename = self._vtk_folder.joinpath(vtk_file)
-        output_data = get_single_node_output_data(state)
+        output_data = get_single_node_output_data(state.node_data, state.unit_converter, internal_cells_list, num_halos, dimension)
         output_data.SetSpacing(delta_x, delta_x, delta_x)
         writer = vtkXMLImageDataWriter()
         writer.SetDataModeToBinary()
@@ -94,9 +82,9 @@ class OutputWriter:
 
         pyplot_figures = get_single_node_pyplot_data(state=state)
         for key, value in pyplot_figures.items():
-            pdf_filename = self._visualization_folder.joinpath(key).joinpath(f"{key}_{time_string}.pdf")
+            pdf_filename = self._visualization_folder.joinpath(f"{key}_{time_string}.pdf")
             value.savefig(pdf_filename)
-            png_filename = self._visualization_folder.joinpath(key).joinpath(f"{key}_{time_string}.png")
+            png_filename = self._visualization_folder.joinpath(f"{key}_{time_string}.png")
             value.savefig(png_filename, dpi=200)
             plt.close(value)
             if key in self._image_lists.keys():
@@ -108,29 +96,15 @@ class OutputWriter:
             pytorch_filename = self._pytorch_output_folder.joinpath(f"{key}_{time_string}.pt")
             torch.save(value, pytorch_filename)
 
-        # statistics_figure = get_statistics_figure(state=state)
-        # pdf_filename = self._visualization_folder.joinpath(f"statistics_{time_string}.pdf")
-        # statistics_figure.savefig(pdf_filename)
-        # png_filename = self._visualization_folder.joinpath(f"statistics_{time_string}.png")
-        # statistics_figure.savefig(png_filename, dpi=200)
-        # plt.close("all")
-
-        # boxplot_figure = get_boxplot_figure(population=state.node_data.distributions.old_population)
-        # pdf_filename = self._visualization_folder.joinpath(f"boxplot_{time_string}.pdf")
-        # boxplot_figure.savefig(pdf_filename)
-        # png_filename = self._visualization_folder.joinpath(f"boxplot_{time_string}.png")
-        # boxplot_figure.savefig(png_filename, dpi=200)
-        # plt.close("all")
-
         if torch.cuda.is_available():
             state.cuda()
-        if not torch.backends.mps.is_available() and torch.backends.mps.is_built():
+        if torch.backends.mps.is_available() and torch.backends.mps.is_built():
             state.mps()
 
     def get_artifacts(self, state: TorchlbmState, timestamp: int):
         if torch.cuda.is_available():
             state.cpu()
-        if not torch.backends.mps.is_available() and torch.backends.mps.is_built():
+        if torch.backends.mps.is_available() and torch.backends.mps.is_built():
             state.cpu()
 
         time_string = f"{timestamp:.8f}"
@@ -142,7 +116,7 @@ class OutputWriter:
 
         if torch.cuda.is_available():
             state.cuda()
-        if not torch.backends.mps.is_available() and torch.backends.mps.is_built():
+        if torch.backends.mps.is_available() and torch.backends.mps.is_built():
             state.mps()
 
         return artifacts
@@ -150,24 +124,15 @@ class OutputWriter:
     def generate_videos(self, state: TorchlbmState):
         if state.torchlbm_setup["Output"]["Velocity"]["Active"].value:
             for key, value in self._image_lists.items():
-                images = [cv2.imread(str(image)) for image in self._image_lists[key]]  
-                images = [cv2.cvtColor(img, cv2.COLOR_BGR2RGB) for img in images]
-                images = np.ascontiguousarray(images)
-     
-                output_path = self._visualization_folder.joinpath(f"{key}.gif")
-                imageio.mimsave(output_path, images, fps=5) 
+                frame = cv2.imread(str(self._image_lists[key][0]))
+                height, width, layers = frame.shape
 
-                gif_filename = self._visualization_folder.joinpath(f"{key}.gif")
-                mp4_filename = self._visualization_folder.joinpath(f"{key}.mp4")
+                video = cv2.VideoWriter(str(self._visualization_folder.joinpath(f"{key}.mov")), cv2.VideoWriter_fourcc("m", "p", "4", "v"), 15, (width, height))
 
-                with imageio.get_writer(mp4_filename, format='mp4', mode='I', fps=3, ffmpeg_params=['-loglevel', 'error']) as writer:
-                    for frame in imageio.get_reader(gif_filename):
-                        writer.append_data(frame)
-
-                os.remove(gif_filename)
-
-    def evaluate_quantities(self, state: TorchlbmState, timestamp: int):
-        pass
-
-    def write_quantities(self, state: TorchlbmState):
-        pass
+                for image in self._image_lists[key]:
+                    video.write(cv2.imread(str(image)))
+                cv2.destroyAllWindows()
+                video.release()
+                # import moviepy.video.io.ImageSequenceClip
+                # movie_clip = moviepy.video.io.ImageSequenceClip.ImageSequenceClip(value, 15)
+                # movie_clip.write_videofile(str(self._visualization_folder.joinpath(f"{key}.mov")))

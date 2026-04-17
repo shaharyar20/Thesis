@@ -1,4 +1,4 @@
-import torch
+import numpy as np
 
 from torchlbm.logger import Logger
 from torchlbm.simulation_setup.torchlbm_setup import TorchlbmSetup
@@ -9,10 +9,12 @@ class UnitConverter:
 
     def __init__(
         self,
+        torchlbm_setup: TorchlbmSetup,
+        logger: Logger,
         lattice_distance: float,
         characteristic_velocity_physical_units: float,
         kinematic_viscosity: float,
-        mach_number: float = 0.05,
+        mach_number=0.05,
     ):
         """Initializes all relevant quantities to perform unit conversion.
 
@@ -28,19 +30,91 @@ class UnitConverter:
         self.lattice_distance = lattice_distance
         self.characteristic_velocity_physical_units = characteristic_velocity_physical_units
         self.kinematic_viscosity = kinematic_viscosity
-        self.cs = 1 / torch.sqrt(torch.tensor(3.0)).item()
+        self.cs = 1 / np.sqrt(3)
 
-        self.conversion_factor_length = self.lattice_distance
-        self.conversion_factor_velocity = self.characteristic_velocity_physical_units / (self.mach_number * self.cs)
-        self.conversion_factor_time = self.conversion_factor_length / self.conversion_factor_velocity
-        self.conversion_factor_density = 1.0
-        self.conversion_factor_acceleration = self.conversion_factor_length / self.conversion_factor_time**2
-        self.conversion_factor_pressure = self.conversion_factor_density * self.conversion_factor_velocity**2
-        self.conversion_factor_bending_modulus = self.conversion_factor_density * self.conversion_factor_velocity**2 * self.conversion_factor_length**3
-        self.conversion_factor_shear_resistance = self.conversion_factor_density * self.conversion_factor_velocity**2 * self.conversion_factor_length
-        self.relaxation_parameter_lattice_units = 0.5 + (self.kinematic_viscosity * self.conversion_factor_time) / (
-            self.cs**2 * self.conversion_factor_length**2
-        )
+        self.logger: Logger = logger
+        self.torchlbm_setup: TorchlbmSetup = torchlbm_setup
+
+    @property
+    def conversion_factor_length(self) -> float:
+        """Return the conversion factor for length scales.
+
+        Returns:
+            float: The conversion factor as float.
+        """
+        return self.lattice_distance
+
+    @property
+    def conversion_factor_velocity(self) -> float:
+        """Return the conversion factor for velocity scales.
+
+        Returns:
+            float: The conversion factor as float.
+        """
+        return self.characteristic_velocity_physical_units / (self.mach_number * self.cs)
+
+    @property
+    def conversion_factor_time(self) -> float:
+        """Return the conversion factor for time scales.
+
+        Returns:
+            float: The conversion factor as float.
+        """
+        return self.conversion_factor_length / self.conversion_factor_velocity
+
+    @property
+    def conversion_factor_density(self) -> float:
+        """Return the conversion factor for density scales.
+
+        Returns:
+            float: The conversion factor as float.
+        """
+        return 1.0
+
+    @property
+    def conversion_factor_acceleration(self) -> float:
+        """Return the conversion factor for acceleration scales.
+
+        Returns:
+            float: The conversion factor as float.
+        """
+        return self.conversion_factor_length / self.conversion_factor_time**2
+
+    @property
+    def conversion_factor_pressure(self) -> float:
+        """Return the conversion factor for pressure scales.
+
+        Returns:
+            float: The conversion factor as float.
+        """
+        return self.conversion_factor_density * self.conversion_factor_velocity**2
+
+    @property
+    def conversion_factor_bending_modulus(self) -> float:
+        """Return the conversion factor for bending_modulus scales.
+
+        Returns:
+            float: The conversion factor as float.
+        """
+        return self.conversion_factor_density * self.conversion_factor_velocity**2 * self.conversion_factor_length**3
+
+    @property
+    def conversion_factor_shear_resistance(self) -> float:
+        """Return the conversion factor for shear_resistance scales.
+
+        Returns:
+            float: The conversion factor as float.
+        """
+        return self.conversion_factor_density * self.conversion_factor_velocity**2 * self.conversion_factor_length
+
+    @property
+    def relaxation_parameter_lattice_units(self) -> float:
+        """Return the relaxation parameter in lattice units.
+
+        Returns:
+            float: The relaxation parameter in lattice units.
+        """
+        return 0.5 + (self.kinematic_viscosity * self.conversion_factor_time) / (self.cs**2 * self.conversion_factor_length**2)
 
     def convert_length_to_lattice_units(self, length_in_physical_units):
         """Converts the quantities described in the method name.
@@ -218,8 +292,79 @@ class UnitConverter:
         """
         return pressure_in_lattice_units * self.conversion_factor_shear_resistance
 
-    def convert_kinematic_viscosity_to_relaxation_time_lattice_units(self, kinematic_viscosity_physical_units):
-        return 0.5 + (kinematic_viscosity_physical_units * self.conversion_factor_time) / (self.cs**2 * self.conversion_factor_length**2)
+    def log_units(self):
+        """Logs all relevant information of the unit converter."""
+        self.logger.write("\n")
+        self.logger.star_line_flush()
+        self.logger.write("\n")
+        self.logger.write("Conversion factors:")
+        self.logger.write("\n")
+        self.logger.write_table(
+            [
+                ["Name", "Value"],
+                [],
+                [
+                    "Length",
+                    "{:10.4f}".format(self.conversion_factor_length),
+                ],
+                [],
+                [
+                    "Velocity",
+                    "{:10.4f}".format(self.conversion_factor_velocity),
+                ],
+                [],
+                [
+                    "Time",
+                    "{:10.4f}".format(self.conversion_factor_time),
+                ],
+                [],
+                [
+                    "Acceleration",
+                    "{:10.4f}".format(self.conversion_factor_acceleration),
+                ],
+                [],
+                [
+                    "Density",
+                    "{:10.4f}".format(self.conversion_factor_density),
+                ],
+                [],
+                [
+                    "Pressure",
+                    "{:10.4f}".format(self.conversion_factor_pressure),
+                ],
+                [],
+                [
+                    "Bending modulus",
+                    "{:10.4f}".format(self.conversion_factor_bending_modulus),
+                ],
+                [],
+                [
+                    "Shear resistance",
+                    "{:10.4f}".format(self.conversion_factor_shear_resistance),
+                ],
+            ]
+        )
+        self.logger.write("\n")
+        self.logger.star_line_flush()
+        self.logger.write("\n")
 
-    def convert_relaxation_time_to_kinematic_viscosity_physical_units(self, relaxation_time_lattice_units):
-        return (relaxation_time_lattice_units - 0.5) * (self.cs**2 * self.conversion_factor_length**2) / self.conversion_factor_time
+        self.logger.write("Stability considerations:")
+        self.logger.write("\n")
+        self.logger.write_table(
+            [
+                ["Name", "Value"],
+                [],
+                [
+                    "Tau lattice units",
+                    "{:10.4f}".format(self.relaxation_parameter_lattice_units),
+                ],
+                [],
+                [
+                    "Characteristic velocity in lattice units",
+                    "{:10.4f}".format(self.convert_velocity_to_lattice_units(self.characteristic_velocity_physical_units)),
+                ],
+            ]
+        )
+        self.logger.write("\n")
+        self.logger.star_line_flush()
+        self.logger.write("\n")

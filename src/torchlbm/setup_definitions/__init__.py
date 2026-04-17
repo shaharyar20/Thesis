@@ -1,4 +1,4 @@
-"""All setup definitions for the torchlbm module."""
+""" All setup definitions for the torchlbm module. """
 
 from .setup_name import SetupName
 from . import setup_handlers

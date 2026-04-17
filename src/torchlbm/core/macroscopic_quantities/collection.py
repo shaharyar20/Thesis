@@ -4,6 +4,10 @@ import torch
 import torch.nn as nn
 from dataclasses import dataclass
 
+from torchlbm.core.macroscopic_quantities.density import DensityCalculationModule
+from torchlbm.core.macroscopic_quantities.velocities import (
+    MacroscopicVelocityCalculationModule,
+)
 from torchlbm.node_data import NodeData
 
 
@@ -27,7 +31,7 @@ class MacroscopicQuantityCalculationModule(nn.Module):
         self.lattice_velocities = torch.tensor(lattice_velocities)
         self.register_buffer("lattice_velocities_const", self.lattice_velocities)
 
-    def forward(self, old_population: torch.Tensor) -> List[torch.Tensor]:
+    def forward(self, node_data: NodeData) -> NodeData:
         """The forward pass of the module which calculates the macroscopic quantities based on the population.
         Macroscopic quantities are for example density and velocity, which represent the moments of the discretized velocity distribution.
 
@@ -43,8 +47,8 @@ class MacroscopicQuantityCalculationModule(nn.Module):
                                 Thus, a three-dimensional vector (velocity for example) has the layout (3 x Nx x Ny x Nz),
                                 where 3 denotes the dimension and Nx, Ny, and Nz refer to the number of cells in x-, y-, and z-direction.
         """
-        density = torch.sum(old_population, dim=0)
-        velocity = torch.einsum(
-            "dQ,QNML->dNML", self.lattice_velocities_const, old_population
-        ) / density.unsqueeze(0)
-        return density, velocity
+        node_data.moments.density = torch.sum(node_data.distributions.old_population, dim=0)
+        node_data.moments.velocity = torch.einsum(
+            "dQ,QNML->dNML", self.lattice_velocities_const, node_data.distributions.old_population
+        ) / node_data.moments.density.unsqueeze(0)
+        return node_data

@@ -28,7 +28,7 @@ class OutletBoundaryUpdate(nn.Module):
         access_indices: List[List[int]],
         dimension: int,
         lattice_velocity: torch.Tensor,
-        lattice_weights: torch.Tensor,
+        lattice_weights: List[float],
         east_velocities: List[int],
         west_velocities: List[int],
         north_velocities: List[int],
@@ -36,12 +36,6 @@ class OutletBoundaryUpdate(nn.Module):
         top_velocities: List[int],
         bottom_velocities: List[int],
         opposite_lattice_indices: List[int],
-        east_outlet_density: float,
-        west_outlet_density: float,
-        north_outlet_density: float,
-        south_outlet_density: float,
-        top_outlet_density: float,
-        bottom_outlet_density: float,
     ) -> None:
         """The initializer for the wall boundary update class. It is usually called from a factory function.
 
@@ -70,12 +64,6 @@ class OutletBoundaryUpdate(nn.Module):
             top_velocities (List[int]): The indices of the directions of the underlying velocity set that have components in the top direction.
             bottom_velocities (List[int]): The indices of the directions of the underlying velocity set that have components in the bottom direction.
             opposite_lattice_indices (List[int]): The opposite lattice indices. They are a property of the underlying velocity set.
-            east_outlet_density (float): The density that should be imposed at the east outlet.
-            west_outlet_density (float): The density that should be imposed at the west outlet.
-            north_outlet_density (float): The density that should be imposed at the north outlet.
-            south_outlet_density (float): The density that should be imposed at the south outlet.
-            top_outlet_density (float): The density that should be imposed at the top outlet.
-            bottom_outlet_density (float): The density that should be imposed at the bottom outlet.
         """
         super(OutletBoundaryUpdate, self).__init__()
 
@@ -94,7 +82,6 @@ class OutletBoundaryUpdate(nn.Module):
         self.lattice_velocity_integers = lattice_velocity.clone().detach().int()
         self.lattice_velocity_integers = self.lattice_velocity_integers.tolist()
         self.lattice_weights = lattice_weights
-        self.register_buffer("lattice_weights_const", self.lattice_weights)
         self.east_velocities = east_velocities
         self.west_velocities = west_velocities
         self.north_velocities = north_velocities
@@ -102,13 +89,6 @@ class OutletBoundaryUpdate(nn.Module):
         self.top_velocities = top_velocities
         self.bottom_velocities = bottom_velocities
         self.opposite_lattice_indices = opposite_lattice_indices
-
-        self.east_outlet_density = east_outlet_density
-        self.west_outlet_density = west_outlet_density
-        self.north_outlet_density = north_outlet_density
-        self.south_outlet_density = south_outlet_density
-        self.top_outlet_density = top_outlet_density
-        self.bottom_outlet_density = bottom_outlet_density
 
     # fmt: off
     def update_east_outlet(self, population: torch.Tensor, velocity: torch.Tensor, density: torch.Tensor) -> torch.Tensor:
@@ -126,21 +106,18 @@ class OutletBoundaryUpdate(nn.Module):
                           of the computational domain.
                           L is the number of discrete velocities of the underlying velocity set.
         """
-        outlet_density = self.east_outlet_density
-        # print(self.access_indices[0][2] - self.num_halo_cells - 1, self.access_indices[0][3] - self.num_halo_cells)
-        # print(velocity[0, self.access_indices[0][3], :, :])
-        velocity_slice = 1.5 * velocity[
-            :,
+        outlet_density = density[
             self.access_indices[0][2] - self.num_halo_cells:
             self.access_indices[0][3] - self.num_halo_cells,
             self.access_indices[1][1] if self.dimension != 1 else 0:
             self.access_indices[1][2] if self.dimension != 1 else 1,
             self.access_indices[2][1] if self.dimension == 3 else 0:
             self.access_indices[2][2] if self.dimension == 3 else 1,
-        ] - 0.5 * velocity[
+        ]
+        velocity_slice = velocity[
             :,
-            self.access_indices[0][2] - self.num_halo_cells - 1:
-            self.access_indices[0][3] - self.num_halo_cells - 1,
+            self.access_indices[0][2] - self.num_halo_cells:
+            self.access_indices[0][3] - self.num_halo_cells,
             self.access_indices[1][1] if self.dimension != 1 else 0:
             self.access_indices[1][2] if self.dimension != 1 else 1,
             self.access_indices[2][1] if self.dimension == 3 else 0:
@@ -158,17 +135,8 @@ class OutletBoundaryUpdate(nn.Module):
                 self.access_indices[2][1] + self.lattice_velocity_integers[2][east_index] if self.dimension == 3 else 0:
                 self.access_indices[2][2] + self.lattice_velocity_integers[2][east_index] if self.dimension == 3 else 1,
             ]
-            # f_slice = population[
-            #     east_index,
-            #     self.access_indices[0][2] - self.num_halo_cells:
-            #     self.access_indices[0][3] - self.num_halo_cells,
-            #     self.access_indices[1][1] if self.dimension != 1 else 0:
-            #     self.access_indices[1][2] if self.dimension != 1 else 1,
-            #     self.access_indices[2][1] if self.dimension == 3 else 0:
-            #     self.access_indices[2][2] if self.dimension == 3 else 1,
-            # ]
             wall_velocity_projection = torch.einsum("dNML,d->NML", velocity_slice, self.lattice_velocity_const[:, east_index])
-            weight = self.lattice_weights_const[east_index]
+            weight = self.lattice_weights[east_index]
             population[
                 opposite_index,
                 self.access_indices[0][2] - self.num_halo_cells:
@@ -195,7 +163,14 @@ class OutletBoundaryUpdate(nn.Module):
                           of the computational domain.
                           L is the number of discrete velocities of the underlying velocity set.
         """
-        outlet_density = self.west_outlet_density
+        outlet_density = density[
+            self.access_indices[0][0] + self.num_halo_cells:
+            self.access_indices[0][1] + self.num_halo_cells,
+            self.access_indices[1][1] if self.dimension != 1 else 0:
+            self.access_indices[1][2] if self.dimension != 1 else 1,
+            self.access_indices[2][1] if self.dimension == 3 else 0:
+            self.access_indices[2][2] if self.dimension == 3 else 1,
+        ]
         velocity_slice = velocity[
             :,
             self.access_indices[0][0] + self.num_halo_cells:
@@ -218,7 +193,7 @@ class OutletBoundaryUpdate(nn.Module):
                 self.access_indices[2][2] + self.lattice_velocity_integers[2][west_index] if self.dimension == 3 else 1,
             ]
             wall_velocity_projection = torch.einsum("dNML,d->NML", velocity_slice, self.lattice_velocity_const[:, west_index])
-            weight = self.lattice_weights_const[west_index]
+            weight = self.lattice_weights[west_index]
             population[
                 opposite_index,
                 self.access_indices[0][0] + self.num_halo_cells:
@@ -245,7 +220,14 @@ class OutletBoundaryUpdate(nn.Module):
                           of the computational domain.
                           L is the number of discrete velocities of the underlying velocity set.
         """
-        outlet_density = self.north_outlet_density
+        outlet_density = density[
+            self.access_indices[0][1]:
+            self.access_indices[0][2],
+            self.access_indices[1][2] - self.num_halo_cells if self.dimension != 1 else 0:
+            self.access_indices[1][3] - self.num_halo_cells if self.dimension != 1 else 1,
+            self.access_indices[2][1] if self.dimension == 3 else 0:
+            self.access_indices[2][2] if self.dimension == 3 else 1,
+        ]
         velocity_slice = velocity[
             :,
             self.access_indices[0][1]:
@@ -268,7 +250,7 @@ class OutletBoundaryUpdate(nn.Module):
                 self.access_indices[2][2] + self.lattice_velocity_integers[2][north_index] if self.dimension == 3 else 1,
             ]
             wall_velocity_projection = torch.einsum("dNML,d->NML", velocity_slice, self.lattice_velocity_const[:, north_index])
-            weight = self.lattice_weights_const[north_index]
+            weight = self.lattice_weights[north_index]
             population[
                 opposite_index,
                 self.access_indices[0][1]:
@@ -295,7 +277,14 @@ class OutletBoundaryUpdate(nn.Module):
                           of the computational domain.
                           L is the number of discrete velocities of the underlying velocity set.
         """
-        outlet_density = self.south_outlet_density
+        outlet_density = density[
+            self.access_indices[0][1]:
+            self.access_indices[0][2],
+            self.access_indices[1][0] + self.num_halo_cells if self.dimension != 1 else 0:
+            self.access_indices[1][1] + self.num_halo_cells if self.dimension != 1 else 1,
+            self.access_indices[2][1] if self.dimension == 3 else 0:
+            self.access_indices[2][2] if self.dimension == 3 else 1,
+        ]
         velocity_slice = velocity[
             :,
             self.access_indices[0][1]:
@@ -318,7 +307,7 @@ class OutletBoundaryUpdate(nn.Module):
                 self.access_indices[2][2] + self.lattice_velocity_integers[2][south_index] if self.dimension == 3 else 1,
             ]
             wall_velocity_projection = torch.einsum("dNML,d->NML", velocity_slice, self.lattice_velocity_const[:, south_index])
-            weight = self.lattice_weights_const[south_index]
+            weight = self.lattice_weights[south_index]
             population[
                 opposite_index,
                 self.access_indices[0][1]:
@@ -345,7 +334,14 @@ class OutletBoundaryUpdate(nn.Module):
                           of the computational domain.
                           L is the number of discrete velocities of the underlying velocity set.
         """
-        outlet_density = self.top_outlet_density
+        outlet_density = density[
+            self.access_indices[0][1]:
+            self.access_indices[0][2],
+            self.access_indices[1][1] if self.dimension != 1 else 0:
+            self.access_indices[1][2] if self.dimension != 1 else 1,
+            self.access_indices[2][2] - self.num_halo_cells if self.dimension == 3 else 0:
+            self.access_indices[2][3] - self.num_halo_cells if self.dimension == 3 else 1,
+        ]
         velocity_slice = velocity[
             :,
             self.access_indices[0][1]:
@@ -368,7 +364,7 @@ class OutletBoundaryUpdate(nn.Module):
                 self.access_indices[2][3] - self.num_halo_cells + self.lattice_velocity_integers[2][top_index] if self.dimension == 3 else 1,
             ]
             wall_velocity_projection = torch.einsum("dNML,d->NML", velocity_slice, self.lattice_velocity_const[:, top_index])
-            weight = self.lattice_weights_const[top_index]
+            weight = self.lattice_weights[top_index]
             population[
                 opposite_index,
                 self.access_indices[0][1]:
@@ -395,7 +391,14 @@ class OutletBoundaryUpdate(nn.Module):
                           of the computational domain.
                           L is the number of discrete velocities of the underlying velocity set.
         """
-        outlet_density = self.bottom_outlet_density
+        outlet_density = density[
+            self.access_indices[0][1]:
+            self.access_indices[0][2],
+            self.access_indices[1][1] if self.dimension != 1 else 0:
+            self.access_indices[1][2] if self.dimension != 1 else 1,
+            self.access_indices[2][0] + self.num_halo_cells if self.dimension == 3 else 0:
+            self.access_indices[2][1] + self.num_halo_cells if self.dimension == 3 else 1,
+        ]
         velocity_slice = velocity[
             :,
             self.access_indices[0][1]:
@@ -418,7 +421,7 @@ class OutletBoundaryUpdate(nn.Module):
                 self.access_indices[2][1] + self.num_halo_cells + self.lattice_velocity_integers[2][bottom_index] if self.dimension == 3 else 1,
             ]
             wall_velocity_projection = torch.einsum("dNML,d->NML", velocity_slice, self.lattice_velocity_const[:, bottom_index])
-            weight = self.lattice_weights_const[bottom_index]
+            weight = self.lattice_weights[bottom_index]
             population[
                 opposite_index,
                 self.access_indices[0][1]:
@@ -431,7 +434,7 @@ class OutletBoundaryUpdate(nn.Module):
         return population
     # fmt: on
 
-    def forward(self, old_population: torch.Tensor, density: torch.Tensor, velocity: torch.Tensor, bounce_back_mask: torch.Tensor) -> torch.Tensor:
+    def forward(self, node_data: NodeData) -> NodeData:
         """Performs the wall boundary update as the forwards pass of the PyTorch module.
 
         Args:
@@ -441,32 +444,31 @@ class OutletBoundaryUpdate(nn.Module):
             NodeData: The node data that contains the storage intensive fields for macroscopic and microscopic quantities which are already
                       updated according to the wall boundary condition.
         """
-        population = old_population.clone()
         if self.is_east_outlet:
-            population = self.update_east_outlet(
-                population, velocity, density
+            node_data.distributions.old_population = self.update_east_outlet(
+                node_data.distributions.old_population, node_data.moments.velocity, node_data.moments.density
             )
         if self.is_west_outlet:
-            population = self.update_west_outlet(
-                population, velocity, density
+            node_data.distributions.old_population = self.update_west_outlet(
+                node_data.distributions.old_population, node_data.moments.velocity, node_data.moments.density
             )
 
         if self.is_north_outlet:
-            population = self.update_north_outlet(
-                population, velocity, density
+            node_data.distributions.old_population = self.update_north_outlet(
+                node_data.distributions.old_population, node_data.moments.velocity, node_data.moments.density
             )
         if self.is_south_outlet:
-            population = self.update_south_outlet(
-                population, velocity, density
+            node_data.distributions.old_population = self.update_south_outlet(
+                node_data.distributions.old_population, node_data.moments.velocity, node_data.moments.density
             )
 
         if self.is_top_outlet:
-            population = self.update_top_outlet(
-                population, velocity, density
+            node_data.distributions.old_population = self.update_top_outlet(
+                node_data.distributions.old_population, node_data.moments.velocity, node_data.moments.density
             )
         if self.is_bottom_outlet:
-            population = self.update_bottom_outlet(
-                population, velocity, density
+            node_data.distributions.old_population = self.update_bottom_outlet(
+                node_data.distributions.old_population, node_data.moments.velocity, node_data.moments.density
             )
 
-        return population
+        return node_data

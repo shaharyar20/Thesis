@@ -1,4 +1,4 @@
-"""Setup types."""
+""" Setup types. """
 
 # Classes and functions
 from .setup import Setup

@@ -85,9 +85,6 @@ class D2Q9(Lattice):
             [1 / 9.0, 1 / 18.0, 1 / 36.0, 1 / 6.0, 1 / 12.0, -1 / 6.0, -1 / 12.0, 0.0, -1 / 4.0],
         ]
 
-        self.my_free_parameter_indices = [0, 1, 2, 3, 4, 5, 6]
-        self.my_viscosity_indices = [7, 8]
-
         self.my_east_velocities = [1, 5, 8]
         self.my_west_velocities = [3, 6, 7]
         self.my_north_velocities = [2, 5, 6]
@@ -152,22 +149,6 @@ class D2Q9(Lattice):
             List[List[float]]: See base class.
         """
         return self.my_momentum_to_population_transform
-    
-    def free_parameter_indices(self) -> List[int]:
-        """See base class.
-
-        Returns:
-            List[int]: See base class.
-        """
-        return self.my_free_parameter_indices
-    
-    def viscosity_indices(self) -> List[int]:
-        """See base class.
-
-        Returns:
-            List[int]: See base class.
-        """
-        return self.my_viscosity_indices
 
     def east_velocities(self) -> List[int]:
         """See base class.

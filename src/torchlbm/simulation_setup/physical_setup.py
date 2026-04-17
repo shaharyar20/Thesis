@@ -16,10 +16,7 @@ def equation_type():
 
 
 def volume_force_type():
-    return ["ShanChen", "Guo"]
-
-def non_newtonian_type():
-    return ["CarreauYasuda"]
+    return ["ShanChen"]
 
 
 class PhysicalSetup(SetupSet):
@@ -46,22 +43,6 @@ class PhysicalSetup(SetupSet):
                     SetupTag("Active", False, False, BoolConverter()),
                     SetupTag("Type", "ShanChen", False, StringConverter(volume_force_type(), False)),
                     SetupTag("ForceVector", [0.0, 0.0, 0.0], False, ListConverter(FloatConverter(), 3, 3)),
-                ],
-            ),
-            SetupSet(
-                "NonNewtonian",
-                [
-                    SetupTag("Active", False, False, BoolConverter()),
-                    SetupTag("Type", "CarreauYasuda", False, StringConverter(non_newtonian_type(), False)),
-                    SetupSet(
-                        "CarreauYasuda",
-                        [
-                            SetupTag("ViscosityInf", 1.0, False, FloatConverter()),
-                            SetupTag("lambda", 1.0, False, FloatConverter()),
-                            SetupTag("n", 1.0, False, FloatConverter()),
-                            SetupTag("a", 1.0, False, FloatConverter()),
-                        ],
-                    ),
                 ],
             ),
             SetupTag("Precision", "Double", True, StringConverter(precision(), False)),

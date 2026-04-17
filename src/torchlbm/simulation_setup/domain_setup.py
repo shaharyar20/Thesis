@@ -11,14 +11,11 @@ from torchlbm.setup_definitions.type_converters import (
 
 
 def boundary_conditions():
-    return ["Periodic", "Wall", "ZeroGradient", "Outlet", "Nothing", "Inlet", "TimeSpaceDependentWall", "Equilibrium"]
+    return ["Periodic", "Wall", "ZeroGradient", "Outlet", "Nothing"]
 
 
 def dimensions():
     return ["1D", "2D", "3D"]
-
-def bounce_back_implementations():
-    return ["Fullway", "Halfway", "Interpolated"]
 
 
 class DomainSetup(SetupSet):
@@ -53,9 +50,6 @@ class DomainSetup(SetupSet):
                                 StringConverter(boundary_conditions(), False),
                             ),
                             SetupTag("WallVelocity", [0.0, 0.0, 0.0], False, ListConverter(FloatConverter(), 3, 3)),
-                            SetupTag("OutletDensity", 1.0, False, FloatConverter()),
-                            SetupTag("EquilibriumDensity", 1.0, False, FloatConverter()),
-                            SetupTag("EquilibriumVelocity", [0.0, 0.0, 0.0], False, ListConverter(FloatConverter(), 3, 3)),
                         ],
                     ),
                     SetupSet(
@@ -68,9 +62,6 @@ class DomainSetup(SetupSet):
                                 StringConverter(boundary_conditions(), False),
                             ),
                             SetupTag("WallVelocity", [0.0, 0.0, 0.0], False, ListConverter(FloatConverter(), 3, 3)),
-                            SetupTag("OutletDensity", 1.0, False, FloatConverter()),
-                            SetupTag("EquilibriumDensity", 1.0, False, FloatConverter()),
-                            SetupTag("EquilibriumVelocity", [0.0, 0.0, 0.0], False, ListConverter(FloatConverter(), 3, 3)),
                         ],
                     ),
                     SetupSet(
@@ -83,9 +74,6 @@ class DomainSetup(SetupSet):
                                 StringConverter(boundary_conditions(), False),
                             ),
                             SetupTag("WallVelocity", [0.0, 0.0, 0.0], False, ListConverter(FloatConverter(), 3, 3)),
-                            SetupTag("OutletDensity", 1.0, False, FloatConverter()),
-                            SetupTag("EquilibriumDensity", 1.0, False, FloatConverter()),
-                            SetupTag("EquilibriumVelocity", [0.0, 0.0, 0.0], False, ListConverter(FloatConverter(), 3, 3)),
                         ],
                     ),
                     SetupSet(
@@ -98,9 +86,6 @@ class DomainSetup(SetupSet):
                                 StringConverter(boundary_conditions(), False),
                             ),
                             SetupTag("WallVelocity", [0.0, 0.0, 0.0], False, ListConverter(FloatConverter(), 3, 3)),
-                            SetupTag("OutletDensity", 1.0, False, FloatConverter()),
-                            SetupTag("EquilibriumDensity", 1.0, False, FloatConverter()),
-                            SetupTag("EquilibriumVelocity", [0.0, 0.0, 0.0], False, ListConverter(FloatConverter(), 3, 3)),
                         ],
                     ),
                     SetupSet(
@@ -113,9 +98,6 @@ class DomainSetup(SetupSet):
                                 StringConverter(boundary_conditions(), False),
                             ),
                             SetupTag("WallVelocity", [0.0, 0.0, 0.0], False, ListConverter(FloatConverter(), 3, 3)),
-                            SetupTag("OutletDensity", 1.0, False, FloatConverter()),
-                            SetupTag("EquilibriumDensity", 1.0, False, FloatConverter()),
-                            SetupTag("EquilibriumVelocity", [0.0, 0.0, 0.0], False, ListConverter(FloatConverter(), 3, 3)),
                         ],
                     ),
                     SetupSet(
@@ -128,12 +110,8 @@ class DomainSetup(SetupSet):
                                 StringConverter(boundary_conditions(), False),
                             ),
                             SetupTag("WallVelocity", [0.0, 0.0, 0.0], False, ListConverter(FloatConverter(), 3, 3)),
-                            SetupTag("OutletDensity", 1.0, False, FloatConverter()),
-                            SetupTag("EquilibriumDensity", 1.0, False, FloatConverter()),
-                            SetupTag("EquilibriumVelocity", [0.0, 0.0, 0.0], False, ListConverter(FloatConverter(), 3, 3)),
                         ],
                     ),
-                    SetupTag("BounceBackType", "Fullway", False, StringConverter(bounce_back_implementations(), False)),
                 ],
             ),
         ]

@@ -7,20 +7,14 @@ from torchlbm.node_data import NodeData
 
 
 class MRTCollisionModule(nn.Module):
-    """A TorchLBM module that performs the multi relaxation time collision step of a Lattice-Boltzmann algorithm
+    """A Torch LBM module that performs the multi relaxation time collision step of a Lattice-Boltzmann algorithm
 
     Args:
         nn (nn.Module): The collision operator is implemented as a PyTorch module. This allows easily composing algorithms based on consecutive modules.
     """
 
     def __init__(
-        self, 
-        free_parameters: List, 
-        my_population_to_momentum_transform: List[List[float]], 
-        my_momentum_to_population_transform: List[List[float]], 
-        number_of_discrete_velocities: int,
-        free_parameter_indices: List[int],
-        viscosity_indices: List[int],
+        self, relaxation_omega: float, my_population_to_momentum_transform: List[List[float]], my_momentum_to_population_transform: List[List[float]]
     ) -> None:
         """The initializer of the two relaxation time collosion module.
 
@@ -32,20 +26,15 @@ class MRTCollisionModule(nn.Module):
                                                                      It is a property of the underlying velocity set.
         """
         super(MRTCollisionModule, self).__init__()
+        self.relaxation_omega = relaxation_omega
         self.my_population_to_momentum_transform = torch.Tensor(my_population_to_momentum_transform)
         self.register_buffer("population_to_momentum_transform_const", self.my_population_to_momentum_transform)
         self.my_momentum_to_population_transform = torch.Tensor(my_momentum_to_population_transform)
         self.register_buffer("momentum_to_population_transform_const", self.my_momentum_to_population_transform)
+        self.relaxation = torch.full((9,), self.relaxation_omega).unsqueeze(-1).unsqueeze(-1).unsqueeze(-1)
+        self.register_buffer("relaxation_const", self.relaxation)
 
-        self.free_parameters = torch.Tensor(free_parameters)
-        self.relaxation_vector = torch.ones(number_of_discrete_velocities)
-        self.free_parameters_indices = free_parameter_indices
-        self.viscosity_indices = viscosity_indices
-        self.relaxation_vector[self.free_parameters_indices] = self.free_parameters
-        self.register_buffer("relaxation_vector_const", self.relaxation_vector)
-
-
-    def forward(self, old_population: torch.Tensor, new_population: torch.Tensor, relaxation_omega: torch.Tensor, collision_source_term: torch.Tensor) -> torch.Tensor:
+    def forward(self, node_data: NodeData) -> torch.Tensor:
         """The forward pass of the collision module. Gets as input the discretized velocity distribution of the start of the timestept,
         and the equilibrium distribution calculated based on it. It returns the post-collision distribution.
 
@@ -59,14 +48,9 @@ class MRTCollisionModule(nn.Module):
         Returns:
             torch.Tensor: The discretized velocity distribution after collision.
         """
-        self.relaxation_vector_const[self.viscosity_indices] = relaxation_omega
-        moment_populations = torch.einsum("iQ,QNML->iNML", self.population_to_momentum_transform_const, old_population)
-        moment_equilibrium_populations = torch.einsum("iQ,QNML->iNML", self.population_to_momentum_transform_const, new_population)
-        collide = self.relaxation_vector_const.unsqueeze(-1).unsqueeze(-1).unsqueeze(-1) * (moment_populations - moment_equilibrium_populations)
-
-        if collision_source_term is not None:
-            collide -= collision_source_term
-
+        moment_populations = torch.einsum("iQ,QNML->iNML", self.population_to_momentum_transform_const, node_data.distributions.old_population)
+        moment_equilibrium_populations = torch.einsum("iQ,QNML->iNML", self.population_to_momentum_transform_const, node_data.distributions.new_population)
+        collide = self.relaxation_const * (moment_populations - moment_equilibrium_populations)
         discrete_velocities_post_collision = torch.einsum("iQ,QNML->iNML", self.momentum_to_population_transform_const, moment_populations - collide)
-        
+
         return discrete_velocities_post_collision

@@ -1,6 +1,5 @@
 import typing
 import torch
-from typing import Optional
 
 
 class Moments:
@@ -38,34 +37,22 @@ class Moments:
         mps_device = torch.device("mps")
         self.density = self.density.to(mps_device)
         self.velocity = self.velocity.to(mps_device)
-        forcing_velocity = self.forcing_velocity
-        if forcing_velocity is not None:
-            self.forcing_velocity = forcing_velocity.to(mps_device)
-        volume_force_field = self.volume_force_field
-        if volume_force_field is not None:
-            self.volume_force_field = volume_force_field.to(mps_device)
+        self.forcing_velocity = self.forcing_velocity.to(mps_device)
+        self.volume_force_field = self.volume_force_field.to(mps_device)
 
     def cuda(self) -> None:
         """Moves all objects to the cuda device."""
         self.density = self.density.cuda()
         self.velocity = self.velocity.cuda()
-        forcing_velocity = self.forcing_velocity
-        if forcing_velocity is not None:
-            self.forcing_velocity = forcing_velocity.cuda()
-        volume_force_field = self.volume_force_field
-        if volume_force_field is not None:
-            self.volume_force_field = volume_force_field.cuda()
+        self.forcing_velocity = self.forcing_velocity.cuda()
+        self.volume_force_field = self.volume_force_field.cuda()
 
     def cpu(self) -> None:
         """Moves all objects to the cpu device."""
         self.density = self.density.cpu()
         self.velocity = self.velocity.cpu()
-        forcing_velocity = self.forcing_velocity
-        if forcing_velocity is not None:
-            self.forcing_velocity = forcing_velocity.cpu()
-        volume_force_field = self.volume_force_field
-        if volume_force_field is not None:
-            self.volume_force_field = volume_force_field.cpu()
+        self.forcing_velocity = self.forcing_velocity.cpu()
+        self.volume_force_field = self.volume_force_field.cpu()
 
 
 class Distributions:
@@ -79,7 +66,6 @@ class Distributions:
         self,
         old_population: torch.Tensor,
         new_population: torch.Tensor,
-        collision_source_term: Optional[torch.Tensor] = None,
     ) -> None:
         """The constructor for the DistributionBlock. It initializes the populations, i.e. the discretized versions of the velocity distribution.
 
@@ -90,29 +76,22 @@ class Distributions:
 
         self.old_population = old_population
         self.new_population = new_population
-        self.collision_source_term = collision_source_term
 
     def mps(self) -> None:
         """Moves all objects to the mps device."""
         mps_device = torch.device("mps")
         self.old_population = self.old_population.to(mps_device)
-        self.new_population = self.new_population.to(mps_device) if self.new_population is not None else None
-        if self.collision_source_term is not None:
-            self.collision_source_term = self.collision_source_term.to(mps_device)
+        self.new_population = self.new_population.to(mps_device)
 
     def cuda(self) -> None:
         """Moves all objects to the cuda device."""
         self.old_population = self.old_population.cuda()
-        self.new_population = self.new_population.cuda() if self.new_population is not None else None
-        if self.collision_source_term is not None:
-            self.collision_source_term = self.collision_source_term.cuda()
+        self.new_population = self.new_population.cuda()
 
     def cpu(self) -> None:
         """Moves all objects to the cpu device."""
         self.old_population = self.old_population.cpu()
-        self.new_population = self.new_population.cpu() if self.new_population is not None else None
-        if self.collision_source_term is not None:
-            self.collision_source_term = self.collision_source_term.cpu()
+        self.new_population = self.new_population.cpu()
 
 
 class NodeData:
@@ -121,13 +100,7 @@ class NodeData:
     It is a pure data container that does not provide any functionality.
     """
 
-    def __init__(
-        self,
-        distributions: Distributions,
-        moments: Moments,
-        relaxation_omega: torch.Tensor,
-        bounce_back_mask: torch.Tensor,
-    ) -> None:
+    def __init__(self, distributions: Distributions, moments: Moments, bounce_back_mask: torch.Tensor = None) -> None:
         """The initializer that creates the member for the microscopic and macroscopic quantities.
 
         Args:
@@ -137,25 +110,24 @@ class NodeData:
         self.distributions = distributions
         self.moments = moments
         self.bounce_back_mask = bounce_back_mask
-        self.relaxation_omega = relaxation_omega
 
     def mps(self) -> None:
         """Moves all objects to the mps device."""
         self.distributions.mps()
         self.moments.mps()
-        self.relaxation_omega.to("mps")
-        self.bounce_back_mask = self.bounce_back_mask.to("mps")
+        if self.bounce_back_mask is not None:
+            self.bounce_back_mask = self.bounce_back_mask.to("mps")
 
     def cuda(self) -> None:
         """Moves all objects to the cuda device."""
         self.distributions.cuda()
         self.moments.cuda()
-        self.relaxation_omega.cuda()
-        self.bounce_back_mask = self.bounce_back_mask.cuda()
+        if self.bounce_back_mask is not None:
+            self.bounce_back_mask = self.bounce_back_mask.cuda()
 
     def cpu(self) -> None:
         """Moves all objects to the cpu device."""
         self.distributions.cpu()
         self.moments.cpu()
-        self.relaxation_omega.cpu()
-        self.bounce_back_mask = self.bounce_back_mask.cpu()
+        if self.bounce_back_mask is not None:
+            self.bounce_back_mask = self.bounce_back_mask.cpu()

@@ -1,4 +1,4 @@
-"""Standalone operation functions that work without any interaction to other modules."""
+""" Standalone operation functions that work without any interaction to other modules. """
 
 from . import string_operations
 from . import file_operations

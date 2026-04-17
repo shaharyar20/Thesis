@@ -33,19 +33,13 @@ class IoSetup(SetupSet):
         density_output_quantity_settings.append(SetupTag("ColorbarLabel", r"$\rho [kg/m^3]$", False, StringConverter()))
         bounce_back_mask_output_quantity_settings = output_quantity_settings.copy()
         bounce_back_mask_output_quantity_settings.append(SetupTag("ColorbarLabel", "Bounce Back Mask", False, StringConverter()))
-        kinematic_viscosity_output_quantity_settings = output_quantity_settings.copy()
-        kinematic_viscosity_output_quantity_settings.append(SetupTag("ColorbarLabel", r"$\nu [m^2/s]$", False, StringConverter()))
-        temperature_output_quantity_settings = output_quantity_settings.copy()
-        temperature_output_quantity_settings.append(SetupTag("ColorbarLabel", r"$T []$", False, StringConverter()))
 
         settings = [
             SetupTag("Active", True, True, BoolConverter()),
-            SetupTag("ProfilingActive", False, False, BoolConverter()),
             SetupTag("ModulusArtifactsActive", False, False, BoolConverter()),
             SetupTag("PrintTimingInformation", True, False, BoolConverter()),
             SetupTag("OutputTimeInterval", 1.0, True, FloatConverter(0.0, None, False)),
             SetupTag("OutputEveryStep", False, False, BoolConverter()),
-            SetupTag("EvaluationTimeInterval", 1.0, False, FloatConverter(0.0, None, False)),
             SetupSet(
                 "Velocity",
                 velocity_output_quantity_settings,
@@ -57,14 +51,6 @@ class IoSetup(SetupSet):
             SetupSet(
                 "BounceBackMask",
                 bounce_back_mask_output_quantity_settings,
-            ),
-            SetupSet(
-                "KinematicViscosity",
-                kinematic_viscosity_output_quantity_settings,
-            ),
-            SetupSet(
-                "Temperature",
-                temperature_output_quantity_settings,
             ),
         ]
 

@@ -1,4 +1,4 @@
-"""Setup handler."""
+""" Setup handler. """
 
 # Classes and functions
 from .setup_handler_type import SetupHandlerType

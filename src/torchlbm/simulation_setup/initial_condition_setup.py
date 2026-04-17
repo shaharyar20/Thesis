@@ -41,8 +41,6 @@ class InitialConditionSetup(SetupSet):
                     SetupTag("BounceBackMask", __file__, False, PathConverter()),
                 ],
             ),
-            SetupTag("ReadInitialMeshfromSTL", False, False, BoolConverter()),
-            SetupTag("STLFilePath", None, False, PathConverter()),
         ]
 
         super().__init__("InitialCondition", settings)

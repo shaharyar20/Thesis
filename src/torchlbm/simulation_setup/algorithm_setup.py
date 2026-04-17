@@ -1,5 +1,5 @@
 from torchlbm.setup_definitions.setup_types import SetupSet, SetupTag
-from torchlbm.setup_definitions.type_converters import StringConverter, PathConverter, ListConverter, FloatConverter
+from torchlbm.setup_definitions.type_converters import StringConverter, PathConverter
 
 
 def operator_implementations():
@@ -7,7 +7,7 @@ def operator_implementations():
 
 
 def collision_implementations():
-    return ["SRT", "TRT", "MRT", "NN", "GNN", "EntropicMRT"]
+    return ["SRT", "TRT", "MRT", "NN", "GNN"]
 
 
 class AlgorithmSetup(SetupSet):
@@ -24,18 +24,13 @@ class AlgorithmSetup(SetupSet):
             SetupSet(
                 "Operators",
                 [
-                    SetupTag("Macroscopic", "Classical", False, StringConverter(operator_implementations())),
-                    SetupTag("Equilibrium", "Classical", False, StringConverter(operator_implementations())),
+                    SetupTag("MacroscopicCalculation", "Classical", False, StringConverter(operator_implementations())),
+                    SetupTag("EquilibriumCalculation", "Classical", False, StringConverter(operator_implementations())),
                     SetupSet(
                         "Collision",
                         [
                             SetupTag("Type", "SRT", False, StringConverter(collision_implementations())),
-                            SetupTag("ModelPath", None, False, PathConverter()),
-                            SetupSet("MRT",
-                                [
-                                    SetupTag("FreeParameters", None, False, ListConverter(FloatConverter(), 0, None)),
-                                ],
-                            ),
+                            SetupTag("ModelPath", None, False, PathConverter(True)),
                         ],
                     ),
                     SetupTag("Streaming", "Classical", False, StringConverter(operator_implementations())),

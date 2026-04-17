@@ -1,7 +1,6 @@
 import torch.nn as nn
 import torch
 from dataclasses import dataclass
-from typing import List
 
 from torchlbm.node_data import NodeData
 
@@ -16,6 +15,8 @@ class ShanChenForcingModule(nn.Module):
 
     def __init__(
         self,
+        forcing_active: bool,
+        tau: float,
         force_vector: torch.tensor,
     ) -> None:
         """Initializer of the module.
@@ -27,10 +28,12 @@ class ShanChenForcingModule(nn.Module):
                                          of spatial dimensions.
         """
         super(ShanChenForcingModule, self).__init__()
+        self.forcing_active = forcing_active
+        self.tau = tau
         self.force_vector = force_vector
         self.register_buffer("force_vector_const", self.force_vector)
 
-    def forward(self, volume_force_field: torch.Tensor, density: torch.Tensor, velocity: torch.Tensor, relaxation_omega: torch.Tensor) -> List[torch.Tensor]:
+    def forward(self, node_data: NodeData) -> torch.Tensor:
         """The forward passt calculation the equilibrium macroscopic velocities for the volume force.
 
         Args:
@@ -39,6 +42,6 @@ class ShanChenForcingModule(nn.Module):
         Returns:
             torch.Tensor: The equilibrium velocitiy that was calculated based on the force.
         """
-        volume_force_field = volume_force_field + self.force_vector_const
-        equilibrium_macroscopic_velocities = volume_force_field / (density * relaxation_omega)
-        return equilibrium_macroscopic_velocities, volume_force_field, None
+        node_data.moments.volume_force_field = node_data.moments.volume_force_field + self.force_vector_const
+        equilibrium_macroscopic_velocities = self.tau * (node_data.moments.volume_force_field) / node_data.moments.density
+        return equilibrium_macroscopic_velocities

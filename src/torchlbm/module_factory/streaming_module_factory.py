@@ -1,5 +1,6 @@
 from torchlbm.state import TorchlbmState
 from torchlbm.core.streaming.streaming import StreamingModule
+from torchlbm.core.streaming.thermal_streaming import ThermalStreamingModule
 
 
 def get_streaming_module(state: TorchlbmState) -> StreamingModule:
@@ -14,7 +15,8 @@ def get_streaming_module(state: TorchlbmState) -> StreamingModule:
     internal_cells_list = state.torchlbm_setup["Domain"]["InternalCells"].value
     num_halos = state.torchlbm_setup["Domain"]["NumHaloCells"].value
     total_cell_list = [num_internal + 2 * num_halos for num_internal in internal_cells_list]
-    return StreamingModule(
+    # return StreamingModule(
+    return ThermalStreamingModule(
         number_of_discrete_velocities=state.lattice.number_of_discrete_velocities(),
         lattice_velocities=state.lattice.lattice_velocities(),
         num_total_cells=total_cell_list,

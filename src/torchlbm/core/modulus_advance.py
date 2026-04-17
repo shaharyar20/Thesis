@@ -1,7 +1,6 @@
 import torch
 import inspect
 from dataclasses import dataclass
-import modulus
 from modulus.models.meta import ModelMetaData
 from modulus.registry import ModelRegistry
 
