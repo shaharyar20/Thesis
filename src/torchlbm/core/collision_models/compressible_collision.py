@@ -52,8 +52,43 @@ class CompressibleCollisionModule(nn.Module):
 
         # node_data.moments.temperature = torch.ones_like(node_data.moments.temperature) * 0.1
         # print("Before collision: ", node_data.distributions.temp_old_population.shape)
+        #self.relaxation_omega_vel = 1.0 / ((self.viscosity / (node_data.moments.density * node_data.moments.temperature)) + 0.5)
+        #self.relaxation_omega_temp = 1.0 / ((self.thermal_conductivity / (self.cp * node_data.moments.density * node_data.moments.temperature)) + 0.5)
+       
+       
+       
+        # 1. Calculate base relaxation frequencies and tau
         self.relaxation_omega_vel = 1.0 / ((self.viscosity / (node_data.moments.density * node_data.moments.temperature)) + 0.5)
         self.relaxation_omega_temp = 1.0 / ((self.thermal_conductivity / (self.cp * node_data.moments.density * node_data.moments.temperature)) + 0.5)
+        
+        tau_vel = 1.0 / self.relaxation_omega_vel
+        tau_temp = 1.0 / self.relaxation_omega_temp
+
+        # 2. Calculate the local Knudsen sensor (epsilon)
+        # f_i is vel_old_population, f_eq is vel_new_population (dim=0 is the Q discrete directions)
+        # Adding 1e-8 to the denominator prevents Division By Zero in empty/solid nodes
+        f_curr = node_data.distributions.vel_old_population
+        f_eq = node_data.distributions.vel_new_population
+        
+        epsilon = torch.mean(torch.abs(f_curr - f_eq) / (torch.abs(f_eq) + 1e-8), dim=0, keepdim=True)
+
+        # 3. Create the piecewise alpha multiplier
+        alpha = torch.ones_like(epsilon)
+        
+        # We use torch.where to apply the piecewise conditions completely in parallel
+        alpha = torch.where((epsilon >= 0.01) & (epsilon < 0.10), torch.tensor(1.05, device=epsilon.device, dtype=epsilon.dtype), alpha)
+        alpha = torch.where((epsilon >= 0.10) & (epsilon < 1.0),  torch.tensor(1.35, device=epsilon.device, dtype=epsilon.dtype), alpha)
+        
+        # The Nuclear Option: if epsilon >= 1.0, alpha = 1 / tau, forcing tau_new = 1.0 (omega_new = 1.0)
+        alpha = torch.where(epsilon >= 1.0, 1.0 / tau_vel, alpha)
+
+        # 4. Apply the multiplier to both fluid and thermal relaxation times
+        self.relaxation_omega_vel = 1.0 / (alpha * tau_vel)
+        self.relaxation_omega_temp = 1.0 / (alpha * tau_temp)
+
+
+
+
 
         node_data.distributions.vel_old_population = torch.where(
             node_data.bounce_back_mask > 0,
