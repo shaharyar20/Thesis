@@ -49,9 +49,12 @@ docs/_build
 
 # Case files
 examples/cases/*
-examples/cases/!case*
+!examples/cases/case*
 
 # ML models and datasets
 examples/distribution_learning/models/*
 examples/distribution_learning/data/*
 examples/distribution_learning/mlruns/*
+
+SupersonicCylinder/*
+SupersonicCylinder_1/*
