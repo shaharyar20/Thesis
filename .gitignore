@@ -56,5 +56,5 @@ examples/distribution_learning/models/*
 examples/distribution_learning/data/*
 examples/distribution_learning/mlruns/*
 
-SupersonicCylinder/*
-SupersonicCylinder_1/*
+SupersonicCylinder
+SupersonicCylinder_1
