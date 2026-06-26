@@ -30,8 +30,8 @@ class ThermalSetup(SetupSet):
             SetupTag("Cp", 2.0, False, FloatConverter(0.0, None, False)),
             SetupTag("Cv", 1.0, False, FloatConverter(0.0, None, False)),
             SetupTag("Viscosity", 0.025, False, FloatConverter(0.0, None, False)),
-            SetupTag("ShiftedVelocityX", 0.01, False, FloatConverter(0.0, None, False)),
-            SetupTag("ShiftedVelocityY", 0.0, False, FloatConverter(0.0, None, False)),
+            SetupTag("ShiftedVelocityX", 0.01, False, FloatConverter(None, None, False)),
+            SetupTag("ShiftedVelocityY", 0.0, False, FloatConverter(None, None, False)),
             SetupSet(
                 "BoundaryConditions",
                 [

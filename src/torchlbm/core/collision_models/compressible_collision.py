@@ -52,12 +52,16 @@ class CompressibleCollisionModule(nn.Module):
 
         # node_data.moments.temperature = torch.ones_like(node_data.moments.temperature) * 0.1
         # print("Before collision: ", node_data.distributions.temp_old_population.shape)
+
+        
         #self.relaxation_omega_vel = 1.0 / ((self.viscosity / (node_data.moments.density * node_data.moments.temperature)) + 0.5)
         #self.relaxation_omega_temp = 1.0 / ((self.thermal_conductivity / (self.cp * node_data.moments.density * node_data.moments.temperature)) + 0.5)
        
        
-       
-        # 1. Calculate base relaxation frequencies and tau
+        #Knudsen number dependent stabilization
+        #---------------------------------------#
+
+        # 1. Calculate base relaxation frequencies
         self.relaxation_omega_vel = 1.0 / ((self.viscosity / (node_data.moments.density * node_data.moments.temperature)) + 0.5)
         self.relaxation_omega_temp = 1.0 / ((self.thermal_conductivity / (self.cp * node_data.moments.density * node_data.moments.temperature)) + 0.5)
         
@@ -65,28 +69,22 @@ class CompressibleCollisionModule(nn.Module):
         tau_temp = 1.0 / self.relaxation_omega_temp
 
         # 2. Calculate the local Knudsen sensor (epsilon)
-        # f_i is vel_old_population, f_eq is vel_new_population (dim=0 is the Q discrete directions)
-        # Adding 1e-8 to the denominator prevents Division By Zero in empty/solid nodes
         f_curr = node_data.distributions.vel_old_population
         f_eq = node_data.distributions.vel_new_population
         
         epsilon = torch.mean(torch.abs(f_curr - f_eq) / (torch.abs(f_eq) + 1e-8), dim=0, keepdim=True)
 
-        # 3. Create the piecewise alpha multiplier
+        # 3. Calculate the stabilization multiplier (alpha)
         alpha = torch.ones_like(epsilon)
-        
-        # We use torch.where to apply the piecewise conditions completely in parallel
         alpha = torch.where((epsilon >= 0.01) & (epsilon < 0.10), torch.tensor(1.05, device=epsilon.device, dtype=epsilon.dtype), alpha)
         alpha = torch.where((epsilon >= 0.10) & (epsilon < 1.0),  torch.tensor(1.35, device=epsilon.device, dtype=epsilon.dtype), alpha)
-        
-        # The Nuclear Option: if epsilon >= 1.0, alpha = 1 / tau, forcing tau_new = 1.0 (omega_new = 1.0)
         alpha = torch.where(epsilon >= 1.0, 1.0 / tau_vel, alpha)
 
         # 4. Apply the multiplier to both fluid and thermal relaxation times
         self.relaxation_omega_vel = 1.0 / (alpha * tau_vel)
         self.relaxation_omega_temp = 1.0 / (alpha * tau_temp)
 
-
+        #---------------------------------------#
 
 
 
@@ -110,13 +108,80 @@ class CompressibleCollisionModule(nn.Module):
         )
 
         # print(node_data.distributions.vel_old_population[:, 1500, 2], node_data.distributions.vel_old_population[:, 1501, 2])
+        
+        
+            # ==========================================
+        # 2D SECOND-ORDER UPWIND INTERPOLATION
+        # ==========================================
+        
+        # 1. Absolute shifts (ensures weights are correctly bounded)
+        a_x = abs(self.shifted_velx)
+        a_y = abs(self.shifted_vely)
 
-        node_data.distributions.temp_old_population[:, 1:, :, :] = self.shifted_velx * node_data.distributions.temp_old_population[:, :-1, :, :] + (1 - self.shifted_velx) * node_data.distributions.temp_old_population[:, 1:, :, :]
-        node_data.distributions.vel_old_population[:, 1:, :, :] = self.shifted_velx * node_data.distributions.vel_old_population[:, :-1, :, :] + (1 - self.shifted_velx) * node_data.distributions.vel_old_population[:, 1:, :, :]
-        # node_data.distributions.temp_old_population[:, :, 1:, :] = self.shifted_vely * node_data.distributions.temp_old_population[:, :, :-1, :] + (1 - self.shifted_vely) * node_data.distributions.temp_old_population[:, :, 1:, :]
-        # node_data.distributions.vel_old_population[:, :, 1:, :] = self.shifted_vely * node_data.distributions.vel_old_population[:, :, :-1, :] + (1 - self.shifted_vely) * node_data.distributions.vel_old_population[:, :, 1:, :]
+        # 2. 1D Lagrange Polynomial Weights for X and Y
+        wx0 = (a_x - 1.0) * (a_x - 2.0) / 2.0
+        wx1 = -a_x * (a_x - 2.0)
+        wx2 = a_x * (a_x - 1.0) / 2.0
 
-        #Bilinear interpolation
+        wy0 = (a_y - 1.0) * (a_y - 2.0) / 2.0
+        wy1 = -a_y * (a_y - 2.0)
+        wy2 = a_y * (a_y - 1.0) / 2.0
+
+        # 3. Dynamic Slices for a 3-point stencil
+        # x_out = current cell, x_in1 = 1st upwind neighbor, x_in2 = 2nd upwind neighbor
+        if self.shifted_velx >= 0:
+            x_out, x_in1, x_in2 = slice(2, None), slice(1, -1), slice(None, -2)
+        else:
+            x_out, x_in1, x_in2 = slice(None, -2), slice(1, -1), slice(2, None)
+
+        if self.shifted_vely >= 0:
+            y_out, y_in1, y_in2 = slice(2, None), slice(1, -1), slice(None, -2)
+        else:
+            y_out, y_in1, y_in2 = slice(None, -2), slice(1, -1), slice(2, None)
+
+        # Extract tensor references to keep the math readable
+        T = node_data.distributions.temp_old_population
+        V = node_data.distributions.vel_old_population
+        
+        # 4. Apply the 2D tensor product of weights (3x3 = 9 terms)
+        T_new = (
+            (wx0 * wy0) * T[:, x_out, y_out, :] + 
+            (wx1 * wy0) * T[:, x_in1, y_out, :] + 
+            (wx2 * wy0) * T[:, x_in2, y_out, :] + 
+
+            (wx0 * wy1) * T[:, x_out, y_in1, :] + 
+            (wx1 * wy1) * T[:, x_in1, y_in1, :] + 
+            (wx2 * wy1) * T[:, x_in2, y_in1, :] + 
+
+            (wx0 * wy2) * T[:, x_out, y_in2, :] + 
+            (wx1 * wy2) * T[:, x_in1, y_in2, :] + 
+            (wx2 * wy2) * T[:, x_in2, y_in2, :]
+        )
+
+        V_new = (
+            (wx0 * wy0) * V[:, x_out, y_out, :] + 
+            (wx1 * wy0) * V[:, x_in1, y_out, :] + 
+            (wx2 * wy0) * V[:, x_in2, y_out, :] + 
+
+            (wx0 * wy1) * V[:, x_out, y_in1, :] + 
+            (wx1 * wy1) * V[:, x_in1, y_in1, :] + 
+            (wx2 * wy1) * V[:, x_in2, y_in1, :] + 
+
+            (wx0 * wy2) * V[:, x_out, y_in2, :] + 
+            (wx1 * wy2) * V[:, x_in1, y_in2, :] + 
+            (wx2 * wy2) * V[:, x_in2, y_in2, :]
+        )
+
+        # 5. Write the interpolated data back to the grid
+        node_data.distributions.temp_old_population[:, x_out, y_out, :] = T_new
+        node_data.distributions.vel_old_population[:, x_out, y_out, :] = V_new
+        
+        #node_data.distributions.temp_old_population[:, 1:, :, :] = self.shifted_velx * node_data.distributions.temp_old_population[:, :-1, :, :] + (1 - self.shifted_velx) * node_data.distributions.temp_old_population[:, 1:, :, :]
+        #node_data.distributions.vel_old_population[:, 1:, :, :] = self.shifted_velx * node_data.distributions.vel_old_population[:, :-1, :, :] + (1 - self.shifted_velx) * node_data.distributions.vel_old_population[:, 1:, :, :]
+        #node_data.distributions.temp_old_population[:, :, 1:, :] = self.shifted_vely * node_data.distributions.temp_old_population[:, :, :-1, :] + (1 - self.shifted_vely) * node_data.distributions.temp_old_population[:, :, 1:, :]
+        #node_data.distributions.vel_old_population[:, :, 1:, :] = self.shifted_vely * node_data.distributions.vel_old_population[:, :, :-1, :] + (1 - self.shifted_vely) * node_data.distributions.vel_old_population[:, :, 1:, :]
+
+        # #Bilinear interpolation
         # node_data.distributions.temp_old_population[:, 1:, 1:, :] = (
         #     (1 - self.shifted_velx) * (1 - self.shifted_vely) * node_data.distributions.temp_old_population[:, 1:, 1:, :] +
         #     (1 - self.shifted_velx) * self.shifted_vely * node_data.distributions.temp_old_population[:, 1:, :-1, :] +

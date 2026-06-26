@@ -164,49 +164,50 @@ class LbmSimulation:
                     modulus_logger.log_figure(value, key)
 
         progress_bar = trange(total_number_iterations)
-        for iteration_index in progress_bar:
+        with torch.no_grad():
+            for iteration_index in progress_bar:
 
-            self.state.node_data, elapsed_time = self.call_advance(self.state.node_data)
+                self.state.node_data, elapsed_time = self.call_advance(self.state.node_data)
 
-            mlups = self.state.total_number_of_lattices / (1.0e6 * elapsed_time)
-            progress_bar.set_postfix(mlups=mlups)
+                mlups = self.state.total_number_of_lattices / (1.0e6 * elapsed_time)
+                progress_bar.set_postfix(mlups=mlups)
 
-            output_decision_every_step = self.state.torchlbm_setup["Output"]["OutputEveryStep"].value
-            current_time_interval_floor = math.floor((iteration_index + 1) * delta_t_pu / plot_time_interval)
-            last_time_interval_floor = math.floor(iteration_index * delta_t_pu / plot_time_interval)
-            output_decision_interval = current_time_interval_floor != last_time_interval_floor or iteration_index == total_number_iterations - 1
-            if (output_decision_every_step or output_decision_interval) and self.state.torchlbm_setup["Output"]["Active"].value:
-                self._output_writer.write_output(
-                    self.state,
-                    (iteration_index + 1) / (total_number_iterations * 10.0),
-                )
-            if (output_decision_every_step or output_decision_interval) and self.state.torchlbm_setup["Output"]["ModulusArtifactsActive"].value:
-                with LaunchLogger("Simulation", epoch=iteration_index) if self.use_modulus else nullcontext() as modulus_logger:
-                    artifacts = self._output_writer.get_artifacts(
+                output_decision_every_step = self.state.torchlbm_setup["Output"]["OutputEveryStep"].value
+                current_time_interval_floor = math.floor((iteration_index + 1) * delta_t_pu / plot_time_interval)
+                last_time_interval_floor = math.floor(iteration_index * delta_t_pu / plot_time_interval)
+                output_decision_interval = current_time_interval_floor != last_time_interval_floor or iteration_index == total_number_iterations - 1
+                if (output_decision_every_step or output_decision_interval) and self.state.torchlbm_setup["Output"]["Active"].value:
+                    self._output_writer.write_output(
                         self.state,
                         (iteration_index + 1) / (total_number_iterations * 10.0),
                     )
-                    for key, value in artifacts.items():
-                        modulus_logger.log_figure(value, key)
+                if (output_decision_every_step or output_decision_interval) and self.state.torchlbm_setup["Output"]["ModulusArtifactsActive"].value:
+                    with LaunchLogger("Simulation", epoch=iteration_index) if self.use_modulus else nullcontext() as modulus_logger:
+                        artifacts = self._output_writer.get_artifacts(
+                            self.state,
+                            (iteration_index + 1) / (total_number_iterations * 10.0),
+                        )
+                        for key, value in artifacts.items():
+                            modulus_logger.log_figure(value, key)
 
-                    if self.use_modulus:
-                        measured_times = {}
-                        measured_times["mlups"] = mlups
-                        modulus_logger.log_epoch(measured_times)
+                        if self.use_modulus:
+                            measured_times = {}
+                            measured_times["mlups"] = mlups
+                            modulus_logger.log_epoch(measured_times)
 
-            # if torch.any(torch.isnan(self.state.node_data.distributions.old_population)) or torch.any(
-            #     torch.isnan(self.state.node_data.distributions.new_population)
-            # ):
-            if torch.any(torch.isnan(self.state.node_data.distributions.vel_old_population)) or torch.any(
-                torch.isnan(self.state.node_data.distributions.vel_new_population)) or torch.any(
-                torch.isnan(self.state.node_data.distributions.temp_old_population)) or torch.any(
-                torch.isnan(self.state.node_data.distributions.temp_new_population)
-            ):
-                self._output_writer.write_output(
-                    self.state,
-                    (iteration_index + 1) / (total_number_iterations * 10.0),
-                )
-                raise TorchlbmError("Values in the population tensor are NaN!")
+                # if torch.any(torch.isnan(self.state.node_data.distributions.old_population)) or torch.any(
+                #     torch.isnan(self.state.node_data.distributions.new_population)
+                # ):
+                if torch.any(torch.isnan(self.state.node_data.distributions.vel_old_population)) or torch.any(
+                    torch.isnan(self.state.node_data.distributions.vel_new_population)) or torch.any(
+                    torch.isnan(self.state.node_data.distributions.temp_old_population)) or torch.any(
+                    torch.isnan(self.state.node_data.distributions.temp_new_population)
+                ):
+                    self._output_writer.write_output(
+                        self.state,
+                        (iteration_index + 1) / (total_number_iterations * 10.0),
+                    )
+                    raise TorchlbmError("Values in the population tensor are NaN!")
 
         # self._output_writer.generate_videos(self.state)
 

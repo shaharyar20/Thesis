@@ -29,11 +29,11 @@ class PorousMediaFlowInitialCondition(TorchlbmInitialCondition):
         #mask = torch.where(torch.sqrt((X-x1)*(X-x1)+(Y-y0)*(Y-y0)) < (D/2.0), 1, mask)
         return mask
 
-D = 30
+D = 50
 x0 = 5.0 * D
 y0 = 7.5 * D
 x1 = 8.0 * D
-Ma_inf = 1.35
+Ma_inf = 1.4
 T_inf = 0.25
 gamma = 1.4
 u_inf = Ma_inf * math.sqrt(gamma * T_inf)
@@ -44,8 +44,10 @@ Pr = 0.71
 Cv = 2.5 #1.0 / (gamma - 1.0)
 Cp = 3.5 #Cv + 1
 k = mu_inf * Cp / Pr
-shifted_velx = 0.5*u_inf #0.5*u_inf
-shifted_vely = 0.0
+
+
+shifted_velx = 0.5*u_inf
+shifted_vely = 0
 print(f"u_inf: {u_inf}, mu_inf: {mu_inf}, k: {k}")
 print(f"cp: {Cp}, cv: {Cv}")
 print(f"E_inf: {Cv * T_inf + 0.5 * u_inf * u_inf}")
@@ -56,15 +58,15 @@ def main():
         simulation_setup["Domain"]["Dimension"].value = "2D"
         simulation_setup["Domain"]["NodeSize"].value = 15.0 * D
         simulation_setup["Domain"]["CellsPerNode"].value = 15 * D
-        simulation_setup["Domain"]["NumHaloCells"].value = 1
+        simulation_setup["Domain"]["NumHaloCells"].value = 2
         simulation_setup["Domain"]["NodeRatio"].value = [1, 1, 1]
-        simulation_setup["Domain"]["BoundaryConditions"]["East"]["Type"].value = "ZeroGradient"
+        simulation_setup["Domain"]["BoundaryConditions"]["East"]["Type"].value = "Outlet"
         simulation_setup["Domain"]["BoundaryConditions"]["West"]["Type"].value = "Wall"
         simulation_setup["Domain"]["BoundaryConditions"]["West"]["WallVelocity"].value = [u_inf, 0.0, 0.0]
         simulation_setup["Domain"]["BoundaryConditions"]["North"]["Type"].value = "ZeroGradient"
         simulation_setup["Domain"]["BoundaryConditions"]["South"]["Type"].value = "ZeroGradient"
-        simulation_setup["Domain"]["BoundaryConditions"]["Top"]["Type"].value = "ZeroGradient"
-        simulation_setup["Domain"]["BoundaryConditions"]["Bottom"]["Type"].value = "ZeroGradient"
+        simulation_setup["Domain"]["BoundaryConditions"]["Top"]["Type"].value = "Periodic"
+        simulation_setup["Domain"]["BoundaryConditions"]["Bottom"]["Type"].value = "Periodic"
 
         simulation_setup["Thermal"]["Active"].value = True
         simulation_setup["Thermal"]["ThermalConductivity"].value = k
