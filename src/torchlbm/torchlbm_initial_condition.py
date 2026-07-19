@@ -71,6 +71,21 @@ class TorchlbmInitialCondition(metaclass=abc.ABCMeta):
         """
         return None
 
+    def get_signed_distance(self, X, Y, Z) -> torch.Tensor:
+        """Optional signed-distance field for the immersed body (PonD SDF no-slip wall).
+
+        Convention: > 0 in the fluid, < 0 inside the solid, |value| = distance to the wall.
+        Return ``None`` (default) if the case has no immersed body or does not use the
+        SDF sub-cell no-slip wall.
+
+        Args:
+            X, Y, Z: (Tx, Ty, Tz) coordinate tensors over the whole computational domain.
+
+        Returns:
+            torch.Tensor | None: the SDF as a (Tx, Ty, Tz) tensor, or None.
+        """
+        return None
+
     def get_initial_particles(self) -> List[torch.Tensor]:
         """In case immersed-boundary treatment is active, it returns the nodes of an immersed-boundary mesh as a tensor with the shape (N, 3),
         where N are the number of immersed-boundary nodes an 3 is the dimension. Otherwise, it returns None."""

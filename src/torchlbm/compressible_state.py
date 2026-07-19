@@ -207,6 +207,14 @@ class CompressibleTorchlbmState:
         else:
             initial_bounce_back_mask = initial_condition.get_bounce_back_mask(meshgrid_for_node[0], meshgrid_for_node[1], meshgrid_for_node[2])
 
+        # Optional signed-distance field for the PonD SDF sub-cell no-slip wall
+        # (> 0 fluid, |.| = wall distance). None unless the case's IC provides one.
+        self.signed_distance = None
+        if not self.torchlbm_setup["InitialCondition"]["ReadInitialConditionFromYaml"].value:
+            self.signed_distance = initial_condition.get_signed_distance(
+                meshgrid_for_node[0], meshgrid_for_node[1], meshgrid_for_node[2]
+            )
+
         initial_temperature = initial_condition.get_initial_temperature(meshgrid_for_node[0], meshgrid_for_node[1], meshgrid_for_node[2])
         initial_energy = 0.5 * (initial_velocity_x**2 + initial_velocity_y**2 + initial_velocity_z**2) + initial_temperature * self.torchlbm_setup["Thermal"]["Cv"].value
         print(initial_energy.shape)
@@ -222,9 +230,20 @@ class CompressibleTorchlbmState:
             moments=Moments(initial_density, velocity_profile, initial_temperature, initial_energy, torch.zeros_like(velocity_profile), torch.zeros_like(velocity_profile)),
             bounce_back_mask=initial_bounce_back_mask.to(torch.int8) if initial_bounce_back_mask is not None else None,
         )
-        self.node_data = equilibrium_module(self.node_data)
-        self.node_data.distributions.vel_old_population = self.node_data.distributions.vel_new_population
-        self.node_data.distributions.temp_old_population = self.node_data.distributions.temp_new_population
+        # The exponential-equilibrium seeding (jacfwd moment solve) is built for the D2Q9
+        # moment system. PonD lattices (e.g. D2Q16 = 16 velocities) do not use it -- the
+        # PonD driver reseeds the populations with the trivial co-moving equilibria -- so
+        # skip it there and leave finite placeholder populations.
+        if self.lattice.number_of_discrete_velocities() == 9:
+            self.node_data = equilibrium_module(self.node_data)
+            self.node_data.distributions.vel_old_population = self.node_data.distributions.vel_new_population
+            self.node_data.distributions.temp_old_population = self.node_data.distributions.temp_new_population
+        else:
+            zeros = torch.zeros_like(self.node_data.distributions.vel_old_population)
+            self.node_data.distributions.vel_old_population = zeros.clone()
+            self.node_data.distributions.vel_new_population = zeros.clone()
+            self.node_data.distributions.temp_old_population = zeros.clone()
+            self.node_data.distributions.temp_new_population = zeros.clone()
 
     def mps(self) -> None:
         """Moves all relevant data to the MPS device (tested for Apple MacBook with M chips.)"""

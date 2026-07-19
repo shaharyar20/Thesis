@@ -48,6 +48,35 @@ class OutputWriter:
             "velocity": [],
             "density": [],
         }
+        # (time, filename) of every .vti written, for the ParaView collection file.
+        self._pvd_entries = []
+
+    def _write_pvd(self) -> None:
+        """Write/refresh ``output/output.pvd`` -- a ParaView collection indexing every .vti.
+
+        ParaView only auto-groups a file series when the names look like ``name_<digits>.ext``.
+        Our .vti names embed the float simulation time (``output_352.25121656.vti``), so the
+        digits are not a clean sequence and ParaView loads each file as a SEPARATE dataset.
+        A .pvd sidesteps the naming rule entirely and, unlike renaming to a zero-padded index,
+        it also carries the REAL timestep -- so ParaView's time slider shows physical time
+        instead of a file counter.
+
+        Open ``output.pvd`` in ParaView (not the individual .vti files) to get one dataset
+        with a working time slider. Rewritten after every output, so it stays valid even if
+        the run is interrupted.
+        """
+        pvd_path = self._vtk_folder.joinpath("output.pvd")
+        lines = [
+            '<?xml version="1.0"?>',
+            '<VTKFile type="Collection" version="0.1" byte_order="LittleEndian">',
+            "  <Collection>",
+        ]
+        for time_value, file_name in self._pvd_entries:
+            lines.append(
+                f'    <DataSet timestep="{time_value:.8f}" group="" part="0" file="{file_name}"/>'
+            )
+        lines += ["  </Collection>", "</VTKFile>"]
+        pvd_path.write_text("\n".join(lines) + "\n")
 
     def write_output(self, state: TorchlbmState, timestamp: int) -> None:
         """Writes output to files.
@@ -79,6 +108,9 @@ class OutputWriter:
         writer.SetFileName(str(vtk_filename))
         writer.SetInputData(output_data)
         writer.Write()
+        # Index this .vti in the ParaView collection so the series groups (see _write_pvd).
+        self._pvd_entries.append((float(timestamp), vtk_file))
+        self._write_pvd()
 
         pyplot_figures = get_single_node_pyplot_data(state=state)
         for key, value in pyplot_figures.items():

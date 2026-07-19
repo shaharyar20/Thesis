@@ -1,4 +1,5 @@
 # Custom entries
+.claude/
 docs/torchlbm*
 docs/mlbm*
 docs/modules.rst
@@ -56,5 +57,21 @@ examples/distribution_learning/models/*
 examples/distribution_learning/data/*
 examples/distribution_learning/mlruns/*
 
-SupersonicCylinder
-SupersonicCylinder_1
+# --- PonD: local artifacts, not for commit ---
+
+# Per-run result folders (solver writes ./<SimName>[_N] at the repo root)
+/SodShockTubePonD*/
+/SupersonicCylinderPonD*/
+/MovingCylinderPonD*/
+/MovingWedgePonD*/
+/AstrophysicalJetPonD*/
+/SchardinPonD*/
+/SupersonicCylinder/
+/SupersonicCylinder_*/
+
+# Validation output (scripts are kept; run folders and generated plots ignored)
+examples/validation/_runs/
+examples/validation/*.png
+
+# PonD LaTeX drafts (methodology / report / architecture notes)
+docs/pond_*.tex
