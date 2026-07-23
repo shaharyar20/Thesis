@@ -1,5 +1,5 @@
 # Custom entries
-.claude/
+CONTEXT_FOR_REVIEW.md
 docs/torchlbm*
 docs/mlbm*
 docs/modules.rst
@@ -66,6 +66,8 @@ examples/distribution_learning/mlruns/*
 /MovingWedgePonD*/
 /AstrophysicalJetPonD*/
 /SchardinPonD*/
+/ShockCylinderPonD*/
+/Riemann2DPonD*/
 /SupersonicCylinder/
 /SupersonicCylinder_*/
 

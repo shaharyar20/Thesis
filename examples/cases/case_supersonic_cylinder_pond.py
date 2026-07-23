@@ -57,7 +57,7 @@ def main():
     upstream = 3             # domain extent ahead of the body
     downstream = 5           # ... and behind it
     lateral = 4              # ... to each side
-    mach = 1.4
+    mach = 3.0               # freestream Mach number
     reynolds = 200.0
     num_halo_cells = 4
     max_steps = 12000
