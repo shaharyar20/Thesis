@@ -44,6 +44,9 @@ class PondSetup(SetupSet):
             SetupTag("ShockSensorThreshold", 0.02, False, FloatConverter(0.0, None, False)),
             # Conservative immersed wall: sub-cell blend width (cells) for the SDF cut-fraction.
             SetupTag("WallWidth", 1.0, False, FloatConverter(0.0, None, False)),
+            # Force the immersed SDF no-slip wall to adiabatic (zero normal heat flux),
+            # independent of the West inflow temperature. False -> use West WallTemperature.
+            SetupTag("WallAdiabatic", False, False, BoolConverter()),
             # Predictor-corrector: max gauge iterations and convergence tolerances.
             SetupTag("MaxIterations", 2, False, IntConverter(1, None, False)),
             SetupTag("ConvergenceRtol", 1e-5, False, FloatConverter(0.0, None, False)),

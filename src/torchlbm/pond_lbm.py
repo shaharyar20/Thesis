@@ -115,11 +115,17 @@ class PondLbmSimulation:
             pass
         elif wall_bc == "sdf_noslip" and self.state.signed_distance is not None:
             wall_temp = self.torchlbm_setup["Thermal"]["BoundaryConditions"]["West"]["WallTemperature"].value
+            # Adiabatic (None) if forced by WallAdiabatic, else isothermal at wall_temp
+            # (or adiabatic when wall_temp <= 0). The West inflow keeps wall_temp regardless.
+            if self.pond_setup["WallAdiabatic"].value:
+                immersed_wall_temp = None
+            else:
+                immersed_wall_temp = wall_temp if wall_temp > 0.0 else None
             modules.append(
                 PondSdfNoSlipWall(
                     eq, self.state.signed_distance,
                     wall_velocity=(0.0, 0.0),
-                    wall_temperature=(wall_temp if wall_temp > 0.0 else None),
+                    wall_temperature=immersed_wall_temp,
                 )
             )
         elif self.state.node_data.bounce_back_mask is not None:

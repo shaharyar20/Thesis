@@ -121,6 +121,7 @@ def main():
     pond_setup["GaugeBlend"].value = 0.5
     pond_setup["EnergyClosure"].value = "combined"          # "combined" (f+g energy, gamma=1.4) | "f_only" (gamma=2)
     pond_setup["WallBc"].value = "sdf_noslip"               # "sdf_noslip" (sub-cell, no staircase) | "noslip"
+    pond_setup["WallAdiabatic"].value = True                # adiabatic cylinder wall (clean isentropic stagnation)
     pond_setup["MaxIterations"].value = 2                   # predictor-corrector sweeps / step
     pond_setup["ConvergenceRtol"].value = 1e-5             # gauge fixed-point tolerance
     pond_setup["ConvergenceAtol"].value = 1e-8

@@ -24,13 +24,18 @@ class PondMovingCylinderSimulation(PondLbmSimulation):
 
     def __init__(self, torchlbm_setup, pond_setup, initial_condition,
                  cylinder_radius, cylinder_speed, wall_bc="bounce_back",
-                 wall_rebuild_tol=0.25, speed_ramp_time=0.0, home_x_frac=0.5):
+                 wall_rebuild_tol=0.25, speed_ramp_time=0.0, home_x_frac=0.5,
+                 adiabatic_wall=False):
         self._cyl_radius = float(cylinder_radius)
         self._cyl_speed = float(cylinder_speed)
         self._wall_bc = wall_bc
         self._wall_rebuild_tol = float(wall_rebuild_tol)
         self._ramp_time = float(speed_ramp_time)
         self._home_x_frac = float(home_x_frac)
+        # False -> isothermal wall at the freestream temperature; True -> adiabatic
+        # (zero normal heat flux, T_bnd = near-wall T), which recovers the clean
+        # isentropic-from-post-shock stagnation density (no cold-wall compression).
+        self._adiabatic_wall = bool(adiabatic_wall)
         self._t_lattice = 0.0
         super().__init__(torchlbm_setup, pond_setup, initial_condition)
 
@@ -48,7 +53,8 @@ class PondMovingCylinderSimulation(PondLbmSimulation):
         if self._wall_bc == "sdf_noslip":
             self.moving_wall = PondSdfNoSlipWall(
                 self._equilibrium, self._sdf(),
-                wall_velocity=(-self._cyl_speed, 0.0), wall_temperature=self.t0,
+                wall_velocity=(-self._cyl_speed, 0.0),
+                wall_temperature=(None if self._adiabatic_wall else self.t0),
             ).to(self.state.node_data.moments.density.dtype)
         else:
             self.moving_wall = PondMovingWall(self._equilibrium, [-self._cyl_speed, 0.0, 0.0], self.t0)

@@ -107,7 +107,7 @@ def main():
     pond_setup["CflNumber"].value = 0.3                   # dt/dx = cfl / max|v_i|
     pond_setup["GaugeMode"].value = "interpolated"          # "interpolated" (blended frame, shock-capturing) | "predictor_corrector"
     pond_setup["GaugeBlend"].value = 0.5
-    pond_setup["Limiter"].value = "superbee"                # least-diffusive K3 limiter (sharp bow shock/wake); fall back to "mc"/"minmod" if it rings
+    pond_setup["Limiter"].value = "mc"                # least-diffusive K3 limiter (sharp bow shock/wake); fall back to "mc"/"minmod" if it rings
     pond_setup["EnergyClosure"].value = "combined"          # "combined" (f+g energy, gamma=1.4) | "f_only" (gamma=2)
     pond_setup["WallBc"].value = "sdf_noslip"               # "sdf_noslip" | "noslip"  (matches moving wall below)
     pond_setup["MaxIterations"].value = 2                   # predictor-corrector sweeps / step
@@ -127,6 +127,7 @@ def main():
         setup, pond_setup, ic, cylinder_radius=d / 2.0, cylinder_speed=u_cyl,
         wall_bc="sdf_noslip", speed_ramp_time=speed_ramp_time,
         home_x_frac=0.20,   # hold the body 1/4 from the left -> ~6 diameters of wake room
+        adiabatic_wall=True,   # zero heat flux -> clean isentropic stagnation density
     )
     sim.run(max_steps=max_steps)
 
