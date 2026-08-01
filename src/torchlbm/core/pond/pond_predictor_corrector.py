@@ -40,6 +40,7 @@ class PondAdvection(nn.Module):
         gauge_blend: float = 0.5,
         energy_closure: str = "combined",
         positivity: bool = False,
+        limiter: str = "default",
     ) -> None:
         super(PondAdvection, self).__init__()
         if gauge_mode not in ("predictor_corrector", "interpolated"):
@@ -62,7 +63,8 @@ class PondAdvection(nn.Module):
 
         abscissae = sorted({float(cx) for cx in lattice_velocities[0]})
         self.gauge_transform = PondGaugeTransform(abscissae)
-        self.reconstruction = PondReconstruction(epsilon=epsilon, positivity=positivity)
+        self.reconstruction = PondReconstruction(
+            epsilon=epsilon, positivity=positivity, limiter_kind=limiter)
         self.lattice_gauge = PondLatticeGauge(
             lattice_velocities, lattice_weights, dimension, lattice_temperature,
             density_floor=density_floor,

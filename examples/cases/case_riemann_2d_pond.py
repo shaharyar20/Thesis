@@ -71,14 +71,15 @@ class Riemann2DInitialCondition(TorchlbmInitialCondition):
 
 def main():
     # --- grid / run length ---
-    n = 200                  # cells per side (square-domain resolution)
+    n = 250                  # cells per side (square-domain resolution; doubled for finer KH)
     num_halo_cells = 4
     viscosity = 2e-3         # small: near-inviscid; raise if the run is unstable
-    max_steps = 6000
+    max_steps = 5000        # scaled with n (dx=1, so more cells = more steps to develop)
 
     cells_per_node = n
     node_size = float(n)
-    split = n / 2.0          # central cross; use 0.8*n for the Schulz-Rinne placement
+    split = 0.8 * n          # Schulz-Rinne: high-density NE corner is small; the flow
+                             # expands into the large SW region (more room for the mushroom)
     k = viscosity * CP / PR
 
     setup = TorchlbmSetup("Riemann2DPonD")
@@ -121,9 +122,10 @@ def main():
     # --- PonD solver options ---
     pond_setup = PondSetup()
     pond_setup["LatticeTemperature"].value = 1.0            # T_L for D2Q16
-    pond_setup["CflNumber"].value = 0.08                    # dt/dx = cfl / max|v_i|
+    pond_setup["CflNumber"].value = 0.2                 # dt/dx = cfl / max|v_i|
     pond_setup["GaugeMode"].value = "interpolated"          # "interpolated" (blended frame) | "predictor_corrector"
     pond_setup["GaugeBlend"].value = 0.5
+    pond_setup["Limiter"].value = "superbee"                # least-diffusive: reveal slip-line KH (may break y=x symmetry)
     pond_setup["EnergyClosure"].value = "combined"          # "combined" (gamma=1.4) | "f_only" (gamma=2)
     pond_setup["WallBc"].value = "noslip"                   # unused (no body)
     pond_setup["MaxIterations"].value = 2                   # predictor-corrector sweeps / step

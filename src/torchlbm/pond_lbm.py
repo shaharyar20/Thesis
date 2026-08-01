@@ -25,6 +25,7 @@ from torchlbm.exceptions import TorchlbmError
 from torchlbm.core.pond.pond_equilibrium import PondEquilibrium
 from torchlbm.core.pond.pond_collision import PondCollisionModule
 from torchlbm.core.pond.pond_predictor_corrector import PondAdvection
+from torchlbm.core.pond.pond_conservative import PondConservativeAdvection
 from torchlbm.core.pond.pond_advance import PondAdvanceModule
 from torchlbm.core.pond.pond_boundary_adapters import (
     PondWallInletBoundaryUpdate,
@@ -106,8 +107,13 @@ class PondLbmSimulation:
         # Immersed wall (per WallBc + a signed distance) then per-side inflow/outflow patches.
         # wall_temp > 0 => isothermal (Dirichlet) wall; <= 0 => adiabatic (Neumann).
         modules = []
+        # The conservative scheme handles the immersed body as a reflecting-wall flux inside
+        # advect(), so the post-advect wall module is redundant (and would fight it). Skip it.
+        conservative = self.pond_setup["AdvectionScheme"].value == "conservative"
         wall_bc = self.pond_setup["WallBc"].value
-        if wall_bc == "sdf_noslip" and self.state.signed_distance is not None:
+        if conservative:
+            pass
+        elif wall_bc == "sdf_noslip" and self.state.signed_distance is not None:
             wall_temp = self.torchlbm_setup["Thermal"]["BoundaryConditions"]["West"]["WallTemperature"].value
             modules.append(
                 PondSdfNoSlipWall(
@@ -140,22 +146,39 @@ class PondLbmSimulation:
             lattice_temperature=self.t_lattice,
         )
         
-        advection = PondAdvection(
-            lv, lw, cv=self.cv, dimension=self.dimension,
-            cfl_number=self.pond_setup["CflNumber"].value,
-            lattice_temperature=self.t_lattice,
-            max_iters=self.pond_setup["MaxIterations"].value,
-            rtol=self.pond_setup["ConvergenceRtol"].value,
-            atol=self.pond_setup["ConvergenceAtol"].value,
-            epsilon=self.pond_setup["SlopeRatioEpsilon"].value,
-            temperature_floor=self.temperature_floor,
-            density_floor=self.pond_setup["DensityFloor"].value,
-            gauge_mode=self.pond_setup["GaugeMode"].value,
-            gauge_blend=self.pond_setup["GaugeBlend"].value,
-            energy_closure=self.pond_setup["EnergyClosure"].value,
-            positivity=self.pond_setup["PositivityLimiter"].value,
-            mask_fallback=True,
-        )
+        if self.pond_setup["AdvectionScheme"].value == "conservative":
+            # Opt-in conservative KFVS scheme (finite-volume, machine-precision conservation,
+            # well-balanced-capable). Inviscid: rebuilds equilibria each step.
+            advection = PondConservativeAdvection(
+                lv, lw, cv=self.cv, dimension=self.dimension,
+                cfl_number=self.pond_setup["CflNumber"].value,
+                lattice_temperature=self.t_lattice,
+                temperature_floor=self.temperature_floor,
+                density_floor=self.pond_setup["DensityFloor"].value,
+                reconstruction=self.pond_setup["ConservativeReconstruction"].value,
+                well_balanced=self.pond_setup["WellBalanced"].value,
+                shock_sensor_threshold=self.pond_setup["ShockSensorThreshold"].value,
+                signed_distance=self.state.signed_distance,   # SDF sub-cell immersed wall
+                wall_width=self.pond_setup["WallWidth"].value,
+            )
+        else:
+            advection = PondAdvection(
+                lv, lw, cv=self.cv, dimension=self.dimension,
+                cfl_number=self.pond_setup["CflNumber"].value,
+                lattice_temperature=self.t_lattice,
+                max_iters=self.pond_setup["MaxIterations"].value,
+                rtol=self.pond_setup["ConvergenceRtol"].value,
+                atol=self.pond_setup["ConvergenceAtol"].value,
+                epsilon=self.pond_setup["SlopeRatioEpsilon"].value,
+                temperature_floor=self.temperature_floor,
+                density_floor=self.pond_setup["DensityFloor"].value,
+                gauge_mode=self.pond_setup["GaugeMode"].value,
+                gauge_blend=self.pond_setup["GaugeBlend"].value,
+                energy_closure=self.pond_setup["EnergyClosure"].value,
+                positivity=self.pond_setup["PositivityLimiter"].value,
+                limiter=self.pond_setup["Limiter"].value,
+                mask_fallback=True,
+            )
         return PondAdvanceModule(collision, advection, self._build_boundaries())
 
 

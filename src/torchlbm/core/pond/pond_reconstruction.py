@@ -15,10 +15,14 @@ import torch.nn as nn
 class PondReconstruction(nn.Module):
     """Per-axis 1-D K3 reconstruction with TVD limiter + optional positivity fallback."""
 
-    def __init__(self, epsilon: float = 1e-10, positivity: bool = False) -> None:
+    def __init__(self, epsilon: float = 1e-10, positivity: bool = False,
+                 limiter_kind: str = "default") -> None:
         super(PondReconstruction, self).__init__()
+        if limiter_kind not in ("default", "minmod", "mc", "superbee"):
+            raise ValueError(f"unknown limiter_kind {limiter_kind!r}")
         self.epsilon = epsilon
         self.positivity = bool(positivity)
+        self.limiter_kind = limiter_kind
 
     def _positivity_limit(self, out: torch.Tensor, upwind: torch.Tensor,
                           eps: float = 1e-12) -> torch.Tensor:
@@ -42,9 +46,30 @@ class PondReconstruction(nn.Module):
         return a_m2, a_m1, a_0, a_p1
 
     def limiter(self, r: torch.Tensor) -> torch.Tensor:
-        # TVD limiter Phi(r): 1 on [1, 3], 2/(r-1) above 3, else 0 (r = slope ratio).
+        # TVD limiter Phi(r) (r = slope ratio). All variants keep the K3 high-r taper
+        # 2/(r-1) for r>3 -- that tail is what keeps THIS reconstruction TVD at strong
+        # shocks -- and differ only in how much high-order they retain for 0 < r <= 3.
+        # Ordered least -> most diffusive: superbee < mc < minmod < default.
+        kind = self.limiter_kind
         phi = torch.zeros_like(r)
-        phi = torch.where((r > 1.0) & (r <= 3.0), torch.ones_like(r), phi)
+        if kind == "default":
+            # Original: first-order (Phi=0) for r<=1, full K3 on (1,3].
+            phi = torch.where((r > 1.0) & (r <= 3.0), torch.ones_like(r), phi)
+        elif kind == "minmod":
+            # Option A: minmod (Phi=r) on (0,1] instead of 0, so only genuine extrema
+            # (r<=0) drop to first order. Strictly less diffusive than default, still safe.
+            phi = torch.where((r > 0.0) & (r <= 1.0), r, phi)
+            phi = torch.where((r > 1.0) & (r <= 3.0), torch.ones_like(r), phi)
+        elif kind == "mc":
+            # Option B: monotonized-central on (0,3] (up to Phi=2). Sharper; more aggressive
+            # than default in (1,3], so TVD here is not guaranteed for K3 -- experimental.
+            mc = torch.minimum(torch.minimum(2.0 * r, 0.5 * (1.0 + r)), torch.full_like(r, 2.0))
+            phi = torch.where((r > 0.0) & (r <= 3.0), mc, phi)
+        else:  # "superbee"
+            # Option C: superbee on (0,3]; least diffusive, compressive (can staircase).
+            sb = torch.maximum(torch.minimum(2.0 * r, torch.ones_like(r)),
+                               torch.minimum(r, torch.full_like(r, 2.0)))
+            phi = torch.where((r > 0.0) & (r <= 3.0), sb, phi)
         phi = torch.where(r > 3.0, 2.0 / (r - 1.0), phi)
         return phi
 

@@ -33,6 +33,17 @@ class PondSetup(SetupSet):
             # Energy closure: "combined" -> gamma = 1.4, "f_only" -> gamma = 2.
             SetupTag("EnergyClosure", "combined", False,
                      StringConverter(["combined", "f_only"], False)),
+            # Advection scheme: default semi-Lagrangian (gauge-transform); "conservative" is
+            # the opt-in KFVS finite-volume scheme (conservative, well-balanced-capable).
+            SetupTag("AdvectionScheme", "semi_lagrangian", False,
+                     StringConverter(["semi_lagrangian", "conservative"], False)),
+            # Conservative-scheme reconstruction and well-balanced options.
+            SetupTag("ConservativeReconstruction", "muscl", False,
+                     StringConverter(["constant", "muscl"], False)),
+            SetupTag("WellBalanced", False, False, BoolConverter()),
+            SetupTag("ShockSensorThreshold", 0.02, False, FloatConverter(0.0, None, False)),
+            # Conservative immersed wall: sub-cell blend width (cells) for the SDF cut-fraction.
+            SetupTag("WallWidth", 1.0, False, FloatConverter(0.0, None, False)),
             # Predictor-corrector: max gauge iterations and convergence tolerances.
             SetupTag("MaxIterations", 2, False, IntConverter(1, None, False)),
             SetupTag("ConvergenceRtol", 1e-5, False, FloatConverter(0.0, None, False)),
@@ -41,6 +52,10 @@ class PondSetup(SetupSet):
             SetupTag("SlopeRatioEpsilon", 1e-10, False, FloatConverter(0.0, None, False)),
             # Blend reconstruction toward 1st-order upwind if a cell would go negative.
             SetupTag("PositivityLimiter", False, False, BoolConverter()),
+            # Semi-Lagrangian K3 TVD limiter. "default" = original (most diffusive);
+            # "minmod" < less diffusive; "mc"/"superbee" sharper but more aggressive.
+            SetupTag("Limiter", "default", False,
+                     StringConverter(["default", "minmod", "mc", "superbee"], False)),
             # Positivity floors on T and rho (guard 1/rho / sqrt(T) blow-ups).
             SetupTag("TemperatureFloor", 1e-4, False, FloatConverter(0.0, None, False)),
             SetupTag("DensityFloor", 1e-6, False, FloatConverter(0.0, None, False)),

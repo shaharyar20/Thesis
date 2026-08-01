@@ -12,7 +12,11 @@ from tqdm import trange
 
 from torchlbm.exceptions import TorchlbmError
 from torchlbm.pond_lbm import PondLbmSimulation
-from torchlbm.core.pond.pond_boundary_adapters import PondMovingWall, PondSdfNoSlipWall
+from torchlbm.core.pond.pond_boundary_adapters import (
+    PondMovingWall,
+    PondSdfNoSlipWall,
+    PondZeroGradientBoundaryUpdate,
+)
 
 
 class PondMovingCylinderSimulation(PondLbmSimulation):
@@ -20,18 +24,21 @@ class PondMovingCylinderSimulation(PondLbmSimulation):
 
     def __init__(self, torchlbm_setup, pond_setup, initial_condition,
                  cylinder_radius, cylinder_speed, wall_bc="bounce_back",
-                 wall_rebuild_tol=0.25, speed_ramp_time=0.0):
+                 wall_rebuild_tol=0.25, speed_ramp_time=0.0, home_x_frac=0.5):
         self._cyl_radius = float(cylinder_radius)
         self._cyl_speed = float(cylinder_speed)
         self._wall_bc = wall_bc
         self._wall_rebuild_tol = float(wall_rebuild_tol)
         self._ramp_time = float(speed_ramp_time)
+        self._home_x_frac = float(home_x_frac)
         self._t_lattice = 0.0
         super().__init__(torchlbm_setup, pond_setup, initial_condition)
 
         shape = self.state.node_data.moments.density.shape
         self.nx, self.ny = shape[0], shape[1]
-        self.home_x = self.nx // 2
+        # Fractional x where the body is held (0.5 = centre). Smaller = further left,
+        # leaving more domain downstream for the wake to develop before it exits.
+        self.home_x = max(1, int(round(self.nx * self._home_x_frac)))
         self.yc = self.ny / 2.0
         self.xc = float(self.home_x)
 
@@ -73,7 +80,16 @@ class PondMovingCylinderSimulation(PondLbmSimulation):
         self.state.node_data = self.moving_wall(self.state.node_data)
 
     def _build_boundaries(self):
-        return []
+        # Open (zero-gradient) top and bottom so the bow shock and wake LEAVE the domain
+        # instead of wrapping around it (the periodic default, which re-injects the top
+        # shock at the bottom and looks like reflection). West/east are handled by the
+        # moving-frame recentre: fresh freestream is fed in at the leading edge and the
+        # wake rolls off the trailing edge, so those two sides are already non-reflecting.
+        nh = self.num_halo_cells
+        return [
+            PondZeroGradientBoundaryUpdate("north", nh),
+            PondZeroGradientBoundaryUpdate("south", nh),
+        ]
 
     def _update_mask(self):
         dev = self.state.node_data.moments.density.device

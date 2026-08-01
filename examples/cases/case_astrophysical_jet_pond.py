@@ -2,7 +2,19 @@
 
 A thin high-density stream is driven in from the west into pressure-matched ambient
 gas (eta = 10x denser). Produces the classic bow shock + Mach-disk + cocoon structure.
-Runs on the D2Q9T fallback lattice with the predictor-corrector frame.
+Runs on the D2Q16 Gauss-Hermite lattice with the interpolated (single-pass, shock-capturing)
+frame.
+
+Configured here at higher Reynolds number (Re = 2000, was 300) AND higher Courant number
+(CFL = 0.4, was 0.1) to cut both sources of smearing -- physical viscosity and accumulated
+interpolation diffusion (a semi-Lagrangian scheme re-interpolates every step, so fewer,
+larger steps diffuse less). The result should have thinner shear layers and a sharper cocoon
+/ KH structure -- a demonstration + consistency run against the inviscid conservative variant
+(case_astrophysical_jet_conservative_pond.py): the two should agree on the shocks and bulk
+(well-posed) and differ at the contacts (the baseline rings; the conservative stays sharp).
+NOTE: at high Re on this grid the flow is closer to under-resolved, so the positivity limiter
+is enabled and the density floor raised for robustness; if it goes unstable, lower Re or CFL,
+or add cells.
 """
 import math
 
@@ -43,10 +55,10 @@ class QuiescentJetInitialCondition(TorchlbmInitialCondition):
 
 def main():
     mach_jet = 10.0
-    cells = 220              # cells across one node (resolution)
-    reynolds = 300.0
+    cells = 300           # cells across one node (resolution)
+    reynolds = 2000.0        # HIGH-Re run (was 300): thinner shear layers, sharper cocoon/KH
     num_halo_cells = 4
-    max_steps = 5500
+    max_steps = 2200
 
     # Pressure-matched states: jet is eta x denser, hence eta x colder.
     rho_amb = RHO_AMB
@@ -91,24 +103,25 @@ def main():
     setup["Physics"]["KinematicViscosityPu"].value = 0.5 / 3.0
     setup["Physics"]["Precision"].value = "Single"
     setup["Physics"]["VolumeForces"]["Active"].value = False
-    setup["Lattice"]["NSE"]["2D"].value = "D2Q9T"# "D2Q9T" (T_L=1/3) | "D2Q16" (T_L=1)
+    setup["Lattice"]["NSE"]["2D"].value = "D2Q16"# "D2Q9T" (T_L=1/3) | "D2Q16" (T_L=1)
     check_torchlbm_setup(setup)
 
     # --- PonD solver options ---
     pond_setup = PondSetup()
-    pond_setup["LatticeTemperature"].value = 1.0 / 3.0     # T_L for D2Q9T
-    pond_setup["CflNumber"].value = 0.1                     # dt/dx = cfl / max|v_i|
-    pond_setup["GaugeMode"].value = "predictor_corrector"   # "predictor_corrector" (classic frame) | "interpolated" (shock-capturing)
-    pond_setup["GaugeBlend"].value = 0.5                    # 0..1 neighbour-mean weight (unused unless interpolated)
+    pond_setup["LatticeTemperature"].value = 1.0           # T_L for D2Q16 (was 1/3 for D2Q9T)
+    pond_setup["CflNumber"].value = 0.4                # raised from 0.1: fewer interpolations -> less diffusion
+    pond_setup["Limiter"].value = "superbee"                # Option C: least diffusive/compressive (watch for staircasing + shock ringing)
+    pond_setup["GaugeMode"].value = "interpolated"          # single-pass, shock-capturing (was predictor_corrector)
+    pond_setup["GaugeBlend"].value = 0.5                 # 0..1 neighbour-mean weight (now ACTIVE); lower it to cut blend smoothing
     pond_setup["EnergyClosure"].value = "combined"          # "combined" (f+g energy, gamma=1.4) | "f_only" (gamma=2)
     pond_setup["WallBc"].value = "noslip"                   # "noslip" | "sdf_noslip"  (unused: no body)
     pond_setup["MaxIterations"].value = 2                   # predictor-corrector sweeps / step
     pond_setup["ConvergenceRtol"].value = 1e-5             # gauge fixed-point tolerance
     pond_setup["ConvergenceAtol"].value = 1e-8
     pond_setup["SlopeRatioEpsilon"].value = 1e-10          # TVD limiter zero-guard
-    pond_setup["PositivityLimiter"].value = False          # True|False -- upwind fallback if a cell would go negative
+    pond_setup["PositivityLimiter"].value = True           # ON at high Re: upwind fallback guards thin, rarefied shear layers
     pond_setup["TemperatureFloor"].value = 1e-3            # positivity floors
-    pond_setup["DensityFloor"].value = 1e-6
+    pond_setup["DensityFloor"].value = 1e-3               # raised for the more rarefied high-Re cocoon
     pond_setup["InletDensity"].value = rho_amb            # ambient density for the periodic refill
     pond_setup["OutputEveryNSteps"].value = 150
 

@@ -1,5 +1,6 @@
 # Custom entries
 CONTEXT_FOR_REVIEW.md
+.claude/
 docs/torchlbm*
 docs/mlbm*
 docs/modules.rst
@@ -67,9 +68,11 @@ examples/distribution_learning/mlruns/*
 /AstrophysicalJetPonD*/
 /SchardinPonD*/
 /ShockCylinderPonD*/
+/ShockBubblePonD*/
 /Riemann2DPonD*/
 /SupersonicCylinder/
 /SupersonicCylinder_*/
+/SupersonicCylinderConservativePonD*/
 
 # Validation output (scripts are kept; run folders and generated plots ignored)
 examples/validation/_runs/
@@ -77,3 +80,6 @@ examples/validation/*.png
 
 # PonD LaTeX drafts (methodology / report / architecture notes)
 docs/pond_*.tex
+
+# PonD conservative (KFVS) solver -- kept local, not for commit
+src/torchlbm/core/pond/pond_conservative.py

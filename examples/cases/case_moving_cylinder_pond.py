@@ -51,7 +51,7 @@ def main():
     cells_per_diameter = 8       # resolution: cells across one diameter
     reynolds = 300.0
     num_halo_cells = 4
-    max_steps = 15000
+    max_steps = 8000
 
     d = diameter
     u_cyl = mach * math.sqrt(GAMMA * T_INF)     # cylinder travel speed from Mach
@@ -60,8 +60,10 @@ def main():
     cells_per_node = cells_per_diameter * d
     node_size = float(cells_per_diameter * d)
     center = (node_size / 2.0, node_size / 2.0)
-    # Ramp the body from rest to u_cyl over ~1.5 acoustic times (an impulsive Mach-3
-    # start launches a numerical shock that blows up).
+    # Ramp the body from rest to u_cyl over ~1.5 acoustic times. This is not just for
+    # stability: it lets the detached bow shock establish gradually as the Mach number
+    # climbs through transonic. An impulsive start pins the shock to the nose (it never
+    # gets the transient it needs to stand off), which is why "ramp off" looks glued.
     speed_ramp_time = 1.5 * diameter / math.sqrt(GAMMA * T_INF)
 
     setup = TorchlbmSetup("MovingCylinderPonD")
@@ -102,9 +104,10 @@ def main():
     # --- PonD solver options ---
     pond_setup = PondSetup()
     pond_setup["LatticeTemperature"].value = 1.0            # T_L for D2Q16
-    pond_setup["CflNumber"].value = 0.1                     # dt/dx = cfl / max|v_i|
+    pond_setup["CflNumber"].value = 0.3                   # dt/dx = cfl / max|v_i|
     pond_setup["GaugeMode"].value = "interpolated"          # "interpolated" (blended frame, shock-capturing) | "predictor_corrector"
     pond_setup["GaugeBlend"].value = 0.5
+    pond_setup["Limiter"].value = "superbee"                # least-diffusive K3 limiter (sharp bow shock/wake); fall back to "mc"/"minmod" if it rings
     pond_setup["EnergyClosure"].value = "combined"          # "combined" (f+g energy, gamma=1.4) | "f_only" (gamma=2)
     pond_setup["WallBc"].value = "sdf_noslip"               # "sdf_noslip" | "noslip"  (matches moving wall below)
     pond_setup["MaxIterations"].value = 2                   # predictor-corrector sweeps / step
@@ -123,6 +126,7 @@ def main():
     sim = PondMovingCylinderSimulation(
         setup, pond_setup, ic, cylinder_radius=d / 2.0, cylinder_speed=u_cyl,
         wall_bc="sdf_noslip", speed_ramp_time=speed_ramp_time,
+        home_x_frac=0.20,   # hold the body 1/4 from the left -> ~6 diameters of wake room
     )
     sim.run(max_steps=max_steps)
 
